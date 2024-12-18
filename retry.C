@@ -37,7 +37,7 @@ typedef struct lnof_file{
 } fichier_lnof ;
 
 void open_lnof(fichier_lnof **F,char filename[], char mode){ //F->f will be pointing after the header
-    *F = malloc(sizeof (fichier_lnof));
+    *F = (fichier_lnof *)malloc(sizeof (fichier_lnof));
     if (mode == 'E' || mode == 'e'){ // create a nwe lof file
         (*F)->f = fopen(filename,"rb+");
         if ((*F)->f == NULL) {
@@ -141,7 +141,7 @@ typedef struct index_file {
 } fichier_tof_index;
 
 void open_index(fichier_tof_index **F,char *filename,char mode){
-    *F = malloc(sizeof (fichier_tof_index));
+    *F = (fichier_tof_index *)malloc(sizeof (fichier_tof_index));
     if (mode == 'E' || mode == 'e'){ // create a nwe lof file
         (*F)->f = fopen(filename,"rb+");
         if ((*F)->f == NULL) {
