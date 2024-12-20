@@ -1,4 +1,4 @@
-#include "mouse.cpp"
+#include "final_menu.c"
 #include <sys/time.h>
 
 
@@ -44,18 +44,18 @@ long Update_timer ()
 void percentage(int i,int j, int max,int curr)
 {
 	float perc;
-	perc=float(curr)/max*100;
+	perc= (float)curr/max*100;
 	printf("\033[%d;%dH%.1f%%",i,j,perc);
 	printf("\033[%d;%dH",i,j+6);
 	printf("\033[42m");
-	for(curr=1;curr<int(perc);curr++)
+	for(curr=1;curr<(int)perc;curr++)
 	{
 		printf(" ");
 	}
 	printf("\033[0m");
 }
 
-int main(void) { 
+/*int main(void) { 
 
 	int i,k=1000000,hide=0,j;  
     Time elapsed, remaining;
@@ -70,19 +70,12 @@ int main(void) {
     {
     	if(!hide)
     	{
-    	perc=float(i)/k*100;
+    	perc=(float)i/k*100;
     	temp=Update_timer();
     	convert_long_to_time(temp,&elapsed);
-    	bruh=temp*((float(k-i)/i));
+    	bruh=temp*((((float)k-i)/i));
     	convert_long_to_time(bruh,&remaining);
     	printf("\033[15;84H%.1f%%",perc);
-    	/*if((int(perc)-perc<0.1) && (int(perc)-perc<-0.1))
-    	{
-    	printf("\033[2;%dH",int(perc)+16);
-		printf("\033[42m");
-		printf(" ");
-		printf("\033[0m");
-		}*/
     	printf("\033[17;66HTime elapsed: %d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);
     	printf("\033[19;65HTime remaining: %d hours %d minutes %d seconds",remaining.hours,remaining.minutes,remaining.seconds);
     	}
@@ -105,18 +98,11 @@ int main(void) {
     			}
     			else
     			{
-    			/*printf("\033[2;%dH",16);
-				printf("\033[42m");
-				for(j=1;j<int(perc);j++)
-				{
-				printf(" ");
-				}
-
-				printf("\033[0m");*/
     			hide=0;
     			}
-			}
+    		}
 		}
 	}
 	return 1;
 }
+*/

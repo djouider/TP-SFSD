@@ -1,5 +1,5 @@
-#include "final_menu.c"
-#include "lof_modal.c"
+
+#include "retry.c"
 
 
 
@@ -31,15 +31,18 @@ void slow_printf(const char message[],int time) /// write a message slowly
 }
 
 
+
+
 int main()
 {
 	fichier_htof *H;
+	fichier_lnof *F;
 	int fs=1;
-	int choice;
-	char Color1[]="\033[0;104m",Color2[]="\033[1;32m"; //colors to use in the menu
+	int choice,N=100000;
+	int list[N],len=0;
+	char Color1[]="\033[0;104m",Color2[]="\033[1;32m",time[20]; //colors to use in the menu
 	
-	
-	open_htof(&H,"History,bin",'E');
+
 	fullscreen(); //making the cmd appear in fullscreen
 	
 	///Introduction
@@ -65,6 +68,8 @@ int main()
 		{
 			case 1:
 				{
+					if(check_file_existance("DOCUMENTS_LIBRARY.BIN"))
+					{
 					do
 					{
 					/////////////File Management////////////
@@ -74,13 +79,44 @@ int main()
 					{
 						case 1:
 							{
-								/////////Bulk Loading/////////
 								
 							}
 							choice=0;
 							break;
 					}
 					}while(choice!=5);
+					}
+					else
+					{
+						////////////Bulk Loading//////////
+						system("cls");
+						printf("					Your file deosnt exist \n\n\n			Would you like to open a new one and bulk load it?\n\n\n Press enter if yes and Esc if no");
+						do
+						{
+							if(Esc())
+							{
+								clear_stdin();break;
+							}
+							if(Enter())
+							{
+								clear_stdin();
+								system("cls");
+								printf("Pls choose the number of books that u want to initialise your file with or enter 0 to default value(100,000)");
+								scanf("%d", &N);
+								if(!N)
+								{
+									N=100000;///Default value
+								}
+								system("cls");
+								open_lnof(&F,"DOCUMENTS_LIBRARY.BIN",'N');
+								printf("here");
+								bulk_load_lof(F,N,list,&len,time);
+								break;
+								
+							}
+						}while(1);
+					}
+				
 				}
 				choice=0;
 				break;
@@ -96,8 +132,22 @@ int main()
 			case 3:
 				{
 					///////////History////////////////////
-					
+					if(check_file_existance("History.bin")) ///File exists
+					{
+					open_htof(&H,"History.bin",'E');
 					show_history(H,fs);
+					close_htof(H);
+					}
+					else
+					{
+						system("cls");
+						if(fs)
+						{
+						printf("\n\n\n\n\n\n\n\n\n					Your history is empty\n\n\n					Make some Operations to add something");
+						printf("\n\n\n\nPress  Anything to go back");
+						getch();
+						}
+					}
 				}
 				choice=0;
 				break;
@@ -184,8 +234,19 @@ int main()
 					{
 						////////////Reset History/////////////	
 						system("cls");
-						Reset_History(H);
-						printf("your history has been deleted successfully\n\npress anything to go back");
+						if(check_file_existance("History.bin"))
+						{
+							if(!(remove("History.bin")))///Delete the file
+							printf("your history has been deleted successfully\n\npress anything to go back");
+							else
+							{
+								printf("There was a problem deleting your history pls retry later");
+							}
+						}
+						else
+						{
+							printf("your history is already empty\n\npres anything to go back");
+						}
 						getch();
 					}	
 						

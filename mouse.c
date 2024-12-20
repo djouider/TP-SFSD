@@ -9,7 +9,7 @@
 #include <windows.h>
 #include <winuser.h>
 
-int last_x =0;
+int last_x=0;
 int last_y=0;
 POINT p;
 

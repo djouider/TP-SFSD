@@ -1,6 +1,8 @@
 #include "read.c"
 
-#define b 40
+#define size 40
+
+
 typedef struct _cost
 {
 	int read;
@@ -18,7 +20,7 @@ typedef struct h_enreg
 } henreg;
 
 typedef struct type_block_htof {
-    henreg Tab[b];
+    henreg Tab[size];
     int nb;
 } block_htof;
 
@@ -35,7 +37,7 @@ typedef struct htof_file{
 } fichier_htof ;
 
 void open_htof(fichier_htof **F,char filename[], char mode){ //F->f will be pointing after the header
-    *F = malloc(sizeof (fichier_htof));
+    *F = malloc (sizeof(fichier_htof));
     if (mode == 'E' || mode == 'e'){ // create a new htof file
         (*F)->f = fopen(filename,"rb+");
         if ((*F)->f == NULL) {
@@ -133,7 +135,7 @@ void Add_history(fichier_htof *F,henreg val)
 		return;
 	}
 	Read_Block_htof(F,&buf,i);
-	if(buf.nb==b)
+	if(buf.nb==size)
 	{
 		Alloc_block_htof(F);
 		buf.nb=1;
@@ -238,19 +240,19 @@ void show_history(fichier_htof *F,int fs)
 		select=0;
 		system("cls");
 		printf("						Commands history\n\nchoose a specific command to see full details \n\n");
-		i=(curr)/b+1;
+		i=(curr)/size+1;
 		Read_Block_htof(F,&buf,i);
 		for(j=0;j<page;j++)
 		{
-			if(	( (j+curr)%b==0 || (j+curr)%b==buf.nb)  )//End of block
+			if(	( (j+curr)%size==0 || (j+curr)%size==buf.nb)  )//End of block
 			{
 				
-				if((j+curr)%b==buf.nb) // block not full
+				if((j+curr)%size==buf.nb) // block not full
 				{
-					i=curr/b+2;	
+					i=curr/size+2;	
 				}
 				else{ //block  full
-				i=(curr+j)/b+1;
+				i=(curr+j)/size+1;
 				}
 				if(i<=max)
 				{
@@ -259,7 +261,7 @@ void show_history(fichier_htof *F,int fs)
 				else	break;
 			}
 			
-			printf("%s : %s ;\n",buf.Tab[(j+curr)%b].date,buf.Tab[(j+curr)%b].Operation);
+			printf("%s : %s ;\n",buf.Tab[(j+curr)%size].date,buf.Tab[(j+curr)%size].Operation);
 	
 		}
 		
@@ -328,10 +330,10 @@ void show_history(fichier_htof *F,int fs)
 					if(select>1)
 					{
 					printf("\033[%d;%dH", select+4,1);
-					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%b].date,buf.Tab[(select+curr-1)%b].Operation); ///print normale sentence in its place and go next one
+					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print normale sentence in its place and go next one
 					select--;
 					printf("\033[%d;%dH", select+4,1);
-					printf("--> %s : %s ;\n",buf.Tab[(select+curr-1)%b].date,buf.Tab[(select+curr-1)%b].Operation); ///print new sentence marked
+					printf("--> %s : %s ;\n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print new sentence marked
 					}
 					clear_stdin();
 				}
@@ -342,7 +344,7 @@ void show_history(fichier_htof *F,int fs)
 					if(!select)
 					{
 						printf("\033[%d;%dH",5,1);
-					printf("--> %s : %s ;\n",buf.Tab[(curr)%b].date,buf.Tab[(curr)%b].Operation); ///print the first sentence marked
+					printf("--> %s : %s ;\n",buf.Tab[(curr)%size].date,buf.Tab[(curr)%size].Operation); ///print the first sentence marked
 					select=1;
 					}
 					else
@@ -350,10 +352,10 @@ void show_history(fichier_htof *F,int fs)
 					if(select<page)
 					{
 					printf("\033[%d;%dH", select+4,1);
-					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%b].date,buf.Tab[(select+curr-1)%b].Operation); ///print normale sentence in its place and go next one
+					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print normale sentence in its place and go next one
 					select++;
 					printf("\033[%d;%dH", select+4,1);
-					printf("--> %s : %s ;\n",buf.Tab[(select+curr-1)%b].date,buf.Tab[(select+curr-1)%b].Operation); ///print new sentence marked
+					printf("--> %s : %s ;\n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print new sentence marked
 					}
 					}
 					clear_stdin();
@@ -369,7 +371,7 @@ void show_history(fichier_htof *F,int fs)
 					if(select)
 					{
 					printf("\033[%d;%dH", select+4,1);
-					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%b].date,buf.Tab[(select+curr-1)%b].Operation); ///print normale sentence in its place and go next one
+					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print normale sentence in its place and go next one
 					}
 					select=p.y-4;
 				}
@@ -377,7 +379,7 @@ void show_history(fichier_htof *F,int fs)
 				if(select)
 				{
 					printf("\033[%d;%dH", select+4,1);
-					printf("--> %s : %s ;\n",buf.Tab[(select+curr-1)%b].date,buf.Tab[(select+curr-1)%b].Operation); ///print new sentence marked
+					printf("--> %s : %s ;\n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print new sentence marked
 				}
 				
 			}
@@ -404,18 +406,11 @@ void show_history(fichier_htof *F,int fs)
 		
 		if(s)
 		{
-			Show_details(F,fs,curr/b+1,curr%b+select-1);
+			Show_details(F,fs,curr/size+1,curr%size+select-1);
 			s=0;
 		}
 	}while(!exit);
 	
-}
-
-
-void Reset_History(fichier_htof *H)
-{
-	set_Header_htof(H,"nblck",0);
-	set_Header_htof(H,"nrec",0);
 }
 
 /*int main()
