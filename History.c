@@ -13,7 +13,7 @@ typedef struct h_enreg
 {
     char date[20];
     char Operation[20];
-    char number;
+    int number;
     cost cout;
     char time[20];
     char status[10];
@@ -108,12 +108,6 @@ void Alloc_block_htof (fichier_htof *F){
 
 void write_hbuffer(block_htof *buf,henreg val,int i)///write a value val in buffer buf in position i
 {
-	/*sprintf(buf->Tab[i].date,val.date);
-	(buf->Tab[i]).number=val.number;
-	sprintf(buf->Tab[i].Operation,val.Operation);
-	sprintf(buf->Tab[i].status,val.status);
-	sprintf(buf->Tab[i].time,val.time);
-	(buf->Tab[i]).cout=val.cout;*/
 	buf->Tab[i]=val;
 	return;
 } 
@@ -122,7 +116,9 @@ void Add_history(fichier_htof *F,henreg val)
 {
 	int i;
 	block_htof buf;
+	printf("here");
 	i=get_Header_htof(F,"nblck");
+	printf("here");
 	if(!i)
 	{
 		Alloc_block_htof(F);
@@ -349,7 +345,7 @@ void show_history(fichier_htof *F,int fs)
 					}
 					else
 					{
-					if(select<page)
+					if(select<j)
 					{
 					printf("\033[%d;%dH", select+4,1);
 					printf("%s : %s ;    \n",buf.Tab[(select+curr-1)%size].date,buf.Tab[(select+curr-1)%size].Operation); ///print normale sentence in its place and go next one
@@ -425,7 +421,7 @@ void show_history(fichier_htof *F,int fs)
 	
 	fullscreen();
 	fs=1;
-	open_htof(&F,"History,bin",'N');
+	open_htof(&F,"History.bin",'N');
 	for(j=0;j<=150;j++)
 	{
 		set_date(&val);

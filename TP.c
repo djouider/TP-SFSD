@@ -37,12 +37,16 @@ int main()
 {
 	fichier_htof *H;
 	fichier_lnof *F;
+	
+	henreg val;
+	cost cout;
 	int fs=1;
 	int choice,N=100000;
 	int list[N],len=0;
 	char Color1[]="\033[0;104m",Color2[]="\033[1;32m",time[20]; //colors to use in the menu
 	
-
+	cout.read=0;
+	cout.write=0;
 	fullscreen(); //making the cmd appear in fullscreen
 	
 	///Introduction
@@ -192,8 +196,26 @@ int main()
 								}
 								system("cls");
 								open_lnof(&F,"DOCUMENTS_LIBRARY.BIN",'N');
-								printf("here");
 								bulk_load_lof(F,N,list,&len,time);
+								/////////Update history/////////////////
+								if(check_file_existance("History.bin"))
+								{
+									open_htof(&H,"History.bin",'E');
+								}
+								else
+								{
+									open_htof(&H,"History.bin",'N');
+								}
+								set_date(&val);
+								printf("date");
+								sprintf(val.Operation,"Bulk loading");
+								val.cout=cout;
+								sprintf(val.time,time);
+								sprintf(val.status,"Successfull");
+								val.number=N;
+								Add_history(H,val);
+								close_htof(H);
+								////////////////////
 								break;
 								
 							}
@@ -343,7 +365,6 @@ int main()
 							////////////////Resolution////////////////
 							do{
 								system("cls");
-								printf("%d",fs);
 								choice=menu(fs,Color1,Color2,"Resolution","","Fullscreen","Windowed","","Exit");
 								switch(choice)
 								{
@@ -355,6 +376,7 @@ int main()
 											fullscreen();
 											fs=1;
 											choice=5;
+											sleep(1);
 										}
 										}
 										break;
@@ -373,8 +395,8 @@ int main()
 								}
 																						
 						}while(choice!=5);
-						choice =0;
 						}
+						choice =0;
 						break;
 					}
 		

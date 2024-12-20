@@ -220,6 +220,7 @@ bool find_list(int *list, int len,int N){
     {
         if (list[i] == N){
             found = true;
+            break;
         }
         i++;
     }
@@ -227,14 +228,17 @@ bool find_list(int *list, int len,int N){
 }
 
 int generate_random_id(int *list, int *len){
+	int cpt=0;
     int n;bool f;
     do {
-        n = 110000 +  rand() % (880001);
+    	cpt++;
+        n = 110000 +  rand()*1000 % (880001);
         //n = 1 +  rand() % (30);
         f = find_list(list,*len,n);
         //printf("n=%d, f=%x\n",n,f);
     }while(f);
     //printf("\n");
+    printf("%d",cpt);
     list[(*len)] = n;
     (*len)++;
     return n;
@@ -337,8 +341,8 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
     			bruh=temp*((((float)N-i)/i));
    			 	convert_long_to_time(bruh,&remaining);
    			 	printf("\033[15;84H%.1f%%",perc);
-    			printf("\033[17;66HTime elapsed: %d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);
-    			printf("\033[19;65HTime remaining: %d hours %d minutes %d seconds",remaining.hours,remaining.minutes,remaining.seconds);
+    			printf("\033[17;66H\x1b[2KTime elapsed: %d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);
+    			printf("\033[19;65H\x1b[2KTime remaining: %d hours %d minutes %d seconds",remaining.hours,remaining.minutes,remaining.seconds);
     		}
     	
             if ( j< b){
