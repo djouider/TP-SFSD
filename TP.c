@@ -62,7 +62,7 @@ int main()
 	do //////////main menu///////////
 	{
 		system("cls");
-		choice=menu(fs,Color1,Color2,"Main Menu","File Management","File Browsing","History","Settings","Exit");
+		choice=menu(fs,Color1,Color2,"Main Menu","File Management","Extras","History","Settings","Exit");
 		
 		switch(choice)
 		{
@@ -74,16 +74,99 @@ int main()
 					{
 					/////////////File Management////////////
 					system("cls");
-					choice=menu(fs,Color1,Color2,"File Management","Add/Remove to file","","","","Exit");
+					choice=menu(fs,Color1,Color2,"File Management","Overview","Modify file","Generate new file","Magazine","Exit");
 					switch(choice)
 					{
+						
 						case 1:
+						{
+							////////Overview//////////	
+						}
+						choice=0;
+						break;
+						
+						case 2:
 							{
+								do ////////Modify//////////
+								{
+									system("cls");
+									choice=menu(fs,Color1,Color2,"Modify file","Modify value","Add to file","Delete from file","","Exit");
+									switch(choice)
+									{
+										case 1:
+										{
+											//////Modify Value//////
+										}
+										choice=0;
+										break;
+										
+										case 2:
+										{
+											///////Add to file///////
+										}
+										choice=0;
+										break;
+										
+										case 3:
+										{
+											////////Delete from file/////		
+										}
+										choice=0;
+										break;
+										
+									}
+								}while(choice!=5);	
+							}
+							choice=0;
+							break;
+							
+							
+							
+						case 3:
+							{
+								////////////Generate new file/////////
+							}
+							choice=0;
+							break;
+							
+						case 4:
+							{
+								do		///////////////Magazine//////////////
+								{
+									system("cls");
+									choice=menu(fs,Color1,Color2,"Magazine","Update Magazines","overview","Delete from Magazines","","Exit");
+									switch(choice)									
+									{
+										case 1:
+											{
+												///////////Update magazine///////
+											}
+											choice=0;
+											break;
+											
+											
+										case 2:
+											{
+												//////////Overview Magazine//////////
+											}
+											choice=0;
+											break;
+											
+										case 3:
+											{
+												////////////Delete Magazine////////
+											}
+											choice=0;
+											break;
+											
+										
+									}
+								}while(choice!=5);
 								
 							}
 							choice=0;
 							break;
-					}
+						}
 					}while(choice!=5);
 					}
 					else
@@ -123,7 +206,7 @@ int main()
 			
 			case 2:
 				{
-					////////////File Browsing///////////////
+					////////////Extras///////////////
 				}
 				choice=0;
 				break;
@@ -193,6 +276,7 @@ int main()
 												sprintf(Color1,"\033[0;103m");
 												break;
 										}
+										choice=0;
 										break;
 									
 									case 3 :
@@ -220,13 +304,13 @@ int main()
 											}
 										}
 									}
-									
+									choice=0;
 									break;
 									
 							}
 							}while(choice!=5);
-							choice=0;
 						}
+						choice=0;
 						break;
 						
 						
@@ -249,6 +333,8 @@ int main()
 						}
 						getch();
 					}	
+					choice=0;
+					break;
 						
 						
 						
@@ -264,13 +350,8 @@ int main()
 									case 2 :
 										{
 										//////////Fullscreen/////////
-										if(fs==1)
+										if(!fs)
 										{
-											perror("You are already in fullscreen mode");
-										}
-										else
-										{
-
 											fullscreen();
 											fs=1;
 											choice=5;
@@ -281,11 +362,7 @@ int main()
 									case 3 :
 										{
 										////////Windowed//////////
-										if(fs==0)
-										{
-											perror("You are already in windowed mode");
-										}
-										else
+										if(fs)
 										{
 											fullscreen();
 											fs=0;
@@ -302,8 +379,8 @@ int main()
 					}
 		
 				}while(choice!=5);
-				choice=0;
 				}
+				choice=0;
 				break;
 	
 		}
