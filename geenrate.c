@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <time.h>
 #include <windows.h>
-#include "mesner.c"
 
 bool find_list(int *list, int len,int N){
     int i=0 ;
