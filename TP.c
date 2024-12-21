@@ -44,6 +44,8 @@ int main()
 	int choice,N=100000;
 	int list[N],len=0;
 	char Color1[]="\033[0;104m",Color2[]="\033[1;32m",time[20]; //colors to use in the menu
+	bool success;
+	
 	
 	cout.read=0;
 	cout.write=0;
@@ -196,7 +198,8 @@ int main()
 								}
 								system("cls");
 								open_lnof(&F,"DOCUMENTS_LIBRARY.BIN",'N');
-								bulk_load_lof(F,N,list,&len,time);
+								bulk_load_lof(F,N,list,&len,time,&success,&cout);
+								
 								/////////Update history/////////////////
 								if(check_file_existance("History.bin"))
 								{
@@ -207,15 +210,59 @@ int main()
 									open_htof(&H,"History.bin",'N');
 								}
 								set_date(&val);
-								printf("date");
 								sprintf(val.Operation,"Bulk loading");
 								val.cout=cout;
 								sprintf(val.time,time);
-								sprintf(val.status,"Successfull");
+								if(success)	sprintf(val.status,"Successfull");
+								else sprintf(val.status,"Failed");
 								val.number=N;
 								Add_history(H,val);
 								close_htof(H);
 								////////////////////
+								
+								///////////printing result//////
+								system("cls");
+								if(success)
+								{
+									printf("			Process terminated with success");
+									printf("\n\ntime tooken :%s",time);
+									printf("\n\nCost : %d writes %d reads",cout.write,cout.read);
+									printf("\n\nRecords inserted : %d",N);
+									printf("\n\npress anything to continue");
+									clear_stdin();
+									getch();
+								}
+								else
+								{
+									printf("			Process stopped or occured a problem");
+									remove("DOCUMENTS_LIBRARY.BIN");
+									printf("\n\nFile deleted");
+									
+									//////Updating history///////////
+									if(check_file_existance("History.bin"))
+									{
+										open_htof(&H,"History.bin",'E');
+									}
+									else
+									{
+										open_htof(&H,"History.bin",'N');
+									}
+									set_date(&val);
+									sprintf(val.Operation,"Deleting""DOCUMENTS_LIBRARY.BIN""");
+									val.cout.read=0;
+									val.cout.write=0;
+									sprintf(val.time,"0 hours 0 minuts 0 seconds");
+									sprintf(val.status,"Successfull");
+									val.number=0;
+									Add_history(H,val);
+									close_htof(H);
+									
+									printf("\n\npress anything to continue");
+									clear_stdin();
+									getch();
+								}
+								
+								
 								break;
 								
 							}

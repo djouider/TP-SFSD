@@ -264,9 +264,9 @@ void generate_random_author(char author[31]){
 
 char *generate_random_type(){
      char *type[7] = {
-        "","Ouvrages et manuels","Revues et periodiques",
+        "Ouvrages et manuels","Revues et periodiques",
         "Actes de conferences","Rapports de recherche",
-        "Memoires et theses","Polycopies et support de cours"
+        "Memoires et theses","Polycopies et support de cours",""
     } ;
     int num_type = 1 + rand() % (6);
     return type[num_type];
@@ -315,14 +315,17 @@ int Min(int x, int y){
     return y;
 }
 
-void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
+void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time,bool *success,cost *cout){
     block_lof buffer;
     buffer.nb = 0;
-    int i,j=0,hide=0,succes=1;
+    int i,j=0,hide=0;
     
     Time elapsed, remaining;
     long temp,bruh;
     float perc;
+    
+    	cout->write=0;
+    	cout->read=0;////initialising costs
     
         //* starting to fill
         system("cls");
@@ -330,7 +333,7 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
 		printf("\033[10;75HPress D to hide or show");
     	printf("\033[25;72H Press Esc to abort the process");
     	
-    	
+    	*success=true;
         for (i=0;i<N;i++){
         	
           	if(!hide) // Show details
@@ -352,6 +355,7 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
             }else {
                 Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                 Alloc_block_lnof(F);
+                (cout->write)++;
                 Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                 buffer.nb = 1;
                 j=0;
@@ -363,9 +367,7 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
     		{
     			if (Esc())
     			{
-    				system("cls");
-    				printf("Process canceled");
-    				succes=0;
+    				*success=0;
     				break;
 				}
     			if (getch()=='d')
@@ -385,12 +387,11 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
 			}
         }
         // writing the last block
-        if(succes)
+        if(*success)
         {
  	       Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
- 		   printf("terminated with success\n");
 		}
-		sprintf(time,"%d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);// returning time took
+		sprintf(time,"%d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);// returning time tooken
 }
 
 int check_file_existance(const char *fname)
