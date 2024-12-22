@@ -36,7 +36,7 @@ bool find_list2(int *list, int len,int N){
 int generate_random_id(int *list){
     int n,i;bool f;
     do {
-        n = 110000 +  rand() % (880001);
+        n = 110000 +  (rand() * 100) % (880001);
         i = n - 110000;
         //n = 1 +  rand() % (30);
     }while(list[i] == 1);
@@ -83,6 +83,7 @@ int main() {
     start = clock();
     //* comparing between the two methods;
     //method 1:
+    N=32766;
     for (i=0;i<N;i++){
         len = generate_random_id(list2);
         printf("i=%d i/b=%d random=%d\n",i+1,i/1024,len);
@@ -90,6 +91,12 @@ int main() {
     }
     end = clock();
     printf("time took %f\n",((double) (end - start)) / CLOCKS_PER_SEC);
+
+    for(i=32768;i<100000;i++){
+        if (list2[i] == 1){
+        printf("list[%d]=%d\n",i,list2[i]);
+        }
+    }
 
     start = clock();
     check_double(list,N);
