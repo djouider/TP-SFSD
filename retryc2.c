@@ -225,17 +225,13 @@ bool find_list(int *list, int len,int N){
     return found;
 }
 
-int generate_random_id(int *list, int *len){
-    int n;bool f;
+int generate_random_id(int *list){
+    int n,i;
     do {
-    n = 110000 + (rand() * rand()) % (9900000);
-        //n = 1 +  rand() % (30);
-        f = find_list(list,*len,n);
-        //printf("n=%d, f=%x\n",n,f);
-    }while(f);
-    //printf("\n");
-    list[(*len)] = n;
-    (*len)++;
+        n = 110000 + (rand() * rand()) % (880001);
+        i = n - 110000;
+    }while(list[i] == 1);
+    list[i] = 1;
     return n;
 }
 
@@ -291,13 +287,12 @@ void tocpy(){
     printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
 }
 
-void fill_buffer(block_lof *buffer,int j,int *list, int *len){
+void fill_buffer(block_lof *buffer,int j,int *list){
     char titre[71];
     char author[31];
     generate_random_title(titre);
     generate_random_author(author);
-    (*buffer).Tab[j].Document_id = generate_random_id(list,len);
-    //(*buffer).Tab[j].Document_id = 110000 +  rand() % (880001);
+    (*buffer).Tab[j].Document_id = generate_random_id(list);
     strcpy( (*buffer).Tab[j].Title,titre);
     strcpy( (*buffer).Tab[j].Author,author);
     strcpy( (*buffer).Tab[j].Type,generate_random_type());
@@ -311,14 +306,15 @@ int min(int x,int y){
     return y;
 }
 
-void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len){
+void bulk_load_lof(fichier_lnof *F,int N,int *list1){
     block_lof buffer;
     buffer.nb = 0;
     int i,j=0;
         //* starting to fill   
         for (i=0;i<N;i++){
             if ( j < b){
-                fill_buffer(&buffer,j,list1,len);
+                fill_buffer(&buffer,j,list1);
+                printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
                 printf("i=%d i/b=%d, j=%d\n",i,i/b,j);
                 buffer.nb++;
                 j++;
@@ -328,7 +324,8 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len){
                 Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                 buffer.nb = 1;
                 j=0;
-                fill_buffer(&buffer,j,list1,len);
+                fill_buffer(&buffer,j,list1);
+                printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
                 j++;
             }
         }
@@ -350,37 +347,21 @@ int main(){
     printf("enter the number of records:\n");
     scanf("%d",&N);
     int *list,len=0;
-    list = (int *)malloc(N*sizeof(int));
-    printf("-the list before searching\n");
-    for (i=0;i<len;i++){
-        printf("%d ",list[i]);
+    
+    //* initiallizing the list
+    list = (int *)malloc(880000*sizeof(int));
+    for (i=0;i<880000;i++){
+        list[i] = 0;
     }
     printf("-\n");
     j=0;
-    /*for (i=0;i<N;i++){
-        fill_buffer(&buffer,i,list,&len);
-    }
-    /*for (i=0;i<N;i++){
-        printf("generaetted number = %d\n\n",generate_random_id(list,&len));
-    }
-    printf("-the list after searching\n");
-    for (i=0;i<len;i++){
-        printf("%d ",list[i]);
-    }
-    printf("\n");
-    for (j=0;j<len;j++){
-    printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[j].Document_id, buffer.Tab[j].Title, buffer.Tab[j].Author, buffer.Tab[j].Type, buffer.Tab[j].Domaine, buffer.Tab[j].Pub_year, buffer.Tab[j].Available_qty);
 
-    }*/
-   // printf("%d",generate_random_id(list,&len));
-    //resizing
-    //initial_load_lof(F,N);
     open_lnof(&F,"test1",'n');
     if (F->f !=NULL ){
-        printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
+        //printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
         //Read_Block_lnof(F,&buffer,0);
         printf("link=%d nb=%d\n",buffer.link,buffer.nb);
-        bulk_load_lof(F,N,list,&len);
+        bulk_load_lof(F,N,list);
         //starting to fill
         /*for (i=0;i<N;i++){
             if ( j< b){
