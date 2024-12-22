@@ -19,24 +19,10 @@ bool find_list(int *list, int len,int N){
     return found;
 }
 
-bool find_list2(int *list, int len,int N){
-    int i=0 ;
-    bool found=false;
-    while ((!found) && (i<len))
-    {
-        if (list[i] == N){
-            found = true;
-            printf("index=%d\n",i);
-        }
-        i++;
-    }
-    return found;
-}
-
 int generate_random_id(int *list){
     int n,i;bool f;
     do {
-        n = 110000 +  (rand() * 100) % (880001);
+        n = 110000 +  (rand() * rand()) % (880001);
         i = n - 110000;
         //n = 1 +  rand() % (30);
     }while(list[i] == 1);
@@ -48,7 +34,7 @@ int generate_random_id(int *list){
 int generate_random_id2(int *list, int *len){
     int n;bool f;
     do {
-        n = 1 +  rand() % (880001);
+        n = 110000 +  (rand() * rand()) % (880001);
         f = find_list(list,*len,n);
     }while(f);
     //printf("\n");
@@ -70,38 +56,45 @@ void check_double(int *list,int length){
 }
 
 int main() {
-    int len =0,i,N;
+    int len =0,i,N,l=0;
     int *list2 = (int*)malloc(880000*sizeof(int));
+    double time1,time2;
     bool ok;
     clock_t start , end;
+    srand(time(NULL));
     printf("pick up a number\n");
     scanf("%d",&N);
     int list[N];
     for (i=0;i<N;i++){
         list2[i] = 0;
     }
-    start = clock();
+    
     //* comparing between the two methods;
-    //method 1:
-    N=32766;
+
+    //*method 1: (using hashing)
+    start = clock();
     for (i=0;i<N;i++){
         len = generate_random_id(list2);
         printf("i=%d i/b=%d random=%d\n",i+1,i/1024,len);
-        list[i] = len;
+        //list[i] = len;
     }
     end = clock();
-    printf("time took %f\n",((double) (end - start)) / CLOCKS_PER_SEC);
+    time1 = ((double) (end - start)) / CLOCKS_PER_SEC;
 
-    for(i=32768;i<100000;i++){
-        if (list2[i] == 1){
-        printf("list[%d]=%d\n",i,list2[i]);
-        }
-    }
 
+    //*method 2:linear search
     start = clock();
-    check_double(list,N);
+    for (i=0;i<N;i++){
+        len = generate_random_id2(list,&l);
+        printf("i=%d i/b=%d length=%d random=%d\n",i+1,i/1024,l,len);
+        //list[i] = len;
+    }
     end = clock();
-    printf("time took %f\n",((double) (end - start)) / CLOCKS_PER_SEC);
+    time2 = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+
+    printf("time took for hashing:%f\n",time1);
+    printf("time took for linear %f\n",time2);
    /*for (i=0;i<32767;i++){
         generate_random_id(list,&len,ok);
     }*/
