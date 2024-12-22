@@ -63,7 +63,7 @@ void open_lnof(fichier_lnof **F,char filename[], char mode){ //F->f will be poin
         buffer.link =-1;
         fwrite(&buffer,sizeof(block_lof),1,(*F)->f);
     }
-    printf("--LnOF file opened succesfuly\n");
+    printf("--LnOF file opened succesfuly\n\n");
 }
 
 void close_lnof(fichier_lnof *F){
@@ -314,8 +314,8 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1){
         for (i=0;i<N;i++){
             if ( j < b){
                 fill_buffer(&buffer,j,list1);
-                printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
-                printf("i=%d i/b=%d, j=%d\n",i,i/b,j);
+                //printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
+                //printf("i=%d i/b=%d, j=%d\n",i,i/b,j);
                 buffer.nb++;
                 j++;
             }else {
@@ -325,7 +325,7 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1){
                 buffer.nb = 1;
                 j=0;
                 fill_buffer(&buffer,j,list1);
-                printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
+                //printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
                 j++;
             }
         }
@@ -340,12 +340,12 @@ int main(){
     block_lof buffer;
     buffer.link = -1;
     buffer.nb = 0;
-    int i,j=0,N;
+    int i,j=0,N,r;
     fichier_tof_index *I;
     block_index buffer_i;
 
-    printf("enter the number of records:\n");
-    scanf("%d",&N);
+    //printf("enter the number of records:\n");
+    //scanf("%d",&N);
     int *list,len=0;
     
     //* initiallizing the list
@@ -353,33 +353,24 @@ int main(){
     for (i=0;i<880000;i++){
         list[i] = 0;
     }
-    printf("-\n");
-    j=0;
 
-    open_lnof(&F,"test1",'n');
-    if (F->f !=NULL ){
-        //printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
-        //Read_Block_lnof(F,&buffer,0);
-        printf("link=%d nb=%d\n",buffer.link,buffer.nb);
-        bulk_load_lof(F,N,list);
-        //starting to fill
-        /*for (i=0;i<N;i++){
-            if ( j< b){
-                fill_buffer(&buffer,j,list,&len);
-                buffer.nb++;
-                j++;
-            }else {
-                Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-                Alloc_block_lnof(F);
-                Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-                buffer.nb = 1;
-                j=0;
-                fill_buffer(&buffer,j,list,&len);
-                j++;
-            }
+    //* looking through the blocks
+
+    open_lnof(&F,"test1",'e');
+    if (F->f != NULL ){
+        //bulk_load_lof(F,N,list);
+        r = rand() % (get_Header_lnof(F,"Lastblk") + 1);
+        Read_Block_lnof(F,&buffer,r);
+        
+        //* looking throught the some buffer
+        for (i=0;i<20;i++){
+            j = rand() % (buffer.nb + 1);
+            printf("j=%d | %d %s, %s, %s, %s, %d %d \n\n",j,buffer.Tab[j].Document_id, buffer.Tab[j].Title, buffer.Tab[j].Author, buffer.Tab[j].Type, buffer.Tab[j].Domaine, buffer.Tab[j].Pub_year, buffer.Tab[j].Available_qty);
         }
-        // writing the last block
-        Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));*/
+
+        printf("reading block = %d\n",r);
+        printf("link=%d nb=%d\n",buffer.link,buffer.nb);
+
         /*printf("lastblk in the file=%d\n",get_Header_lnof(F,"Lastblk"));
         N = rand() % (get_Header_lnof(F,"Lastblk")+1);  
         //N=get_Header_lnof(F,"Lastblk");
