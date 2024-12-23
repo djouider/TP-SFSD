@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <time.h>
 
-
 #define b 1024
 
 typedef struct type_enreg {
@@ -117,8 +116,8 @@ void Alloc_block_lnof (fichier_lnof *F){
 // la structure TOF (pour l'index)
 
 typedef struct type_enreg_index{
-    long int key;
-    int num_block;
+    int key;
+    int adr_block;
     int position;
     bool del;
 }enreg_index;
@@ -165,7 +164,7 @@ void open_index(fichier_tof_index **F,char *filename,char mode){
         buffer.nb =0;
         fwrite(&buffer,sizeof(block_index),1,(*F)->f); 
     }
-    printf("\n--index file opened succesuly\n");
+    printf("\n--index file opened succesuly\n\n");
 }
 
 void close_index( fichier_tof_index *F )
@@ -174,7 +173,7 @@ void close_index( fichier_tof_index *F )
    rewind(F->f);
    fwrite( &F->h, sizeof(header_index), 1, F->f );
    fclose(F->f);
-   printf("\n--index file closed succesfuly");
+   printf("\n--index file closed succesfuly\n\n");
    free( F );
 }
 
@@ -223,16 +222,6 @@ bool find_list(int *list, int len,int N){
         i++;
     }
     return found;
-}
-
-int generate_random_id(int *list){
-    int n,i;
-    do {
-        n = 110000 + (rand() * rand()) % (880001);
-        i = n - 110000;
-    }while(list[i] == 1);
-    list[i] = 1;
-    return n;
 }
 
 void generate_random_title(char titre[71]){
@@ -287,12 +276,23 @@ void tocpy(){
     printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
 }
 
-void fill_buffer(block_lof *buffer,int j,int *list){
+int generate_random_id(int *list){
+    int n,i;
+    do {
+        n = 110000 + (rand() * rand()) % (880001);
+        i = n - 110000;
+    }while(list[i] == 1);
+    list[i] = 1;
+    return n;
+}
+
+void fill_buffer(block_lof *buffer,int j,int *list,int *id){
     char titre[71];
     char author[31];
     generate_random_title(titre);
     generate_random_author(author);
-    (*buffer).Tab[j].Document_id = generate_random_id(list);
+    *id = generate_random_id(list); //to get the id of the book to make an index from it
+    (*buffer).Tab[j].Document_id = *id;
     strcpy( (*buffer).Tab[j].Title,titre);
     strcpy( (*buffer).Tab[j].Author,author);
     strcpy( (*buffer).Tab[j].Type,generate_random_type());
@@ -306,32 +306,89 @@ int min(int x,int y){
     return y;
 }
 
-void bulk_load_lof(fichier_lnof *F,int N,int *list1){
+void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
     block_lof buffer;
     buffer.nb = 0;
-    int i,j=0;
+    int i,j=0,id,k=0,*list;
+    enreg_index *list_index = (enreg_index *)malloc(N * sizeof(enreg_index)),temp;
+    block_index buffer_index;
+
+    //* initiallizing the list
+    list = (int *)malloc(880000*sizeof(int));
+    for (i=0;i<880000;i++){
+        list[i] = 0;
+    }
         //* starting to fill   
         for (i=0;i<N;i++){
             if ( j < b){
-                fill_buffer(&buffer,j,list1);
+                fill_buffer(&buffer,j,list,&id);
+                list_index[k].key = id;
+                list_index[k].adr_block = i/b;
+                list_index[k].position = j;
+                list_index[k].del = 0;
                 //printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
                 //printf("i=%d i/b=%d, j=%d\n",i,i/b,j);
                 buffer.nb++;
                 j++;
+                k++;
             }else {
                 Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                 Alloc_block_lnof(F);
                 Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                 buffer.nb = 1;
                 j=0;
-                fill_buffer(&buffer,j,list1);
+                fill_buffer(&buffer,j,list,&id);
+                list_index[k].key = id;
+                list_index[k].adr_block = i/b;
+                list_index[k].position = j;
+                list_index[k].del = 0;
+                k++;
                 //printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
                 j++;
+                printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
             }
         }
         // writing the last block
         Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-    printf("terminated with success\n");
+    printf("terminated with success\n\n");
+
+    //* sorting the list_index
+    bool swap;
+            for(i=0;i<N-1;i++){
+                swap = false;
+                for (j=0;j<N-i-1;j++){
+                    
+                    if (list_index[j].key > list_index[j+1].key){
+                        temp = list_index[j];
+                        list_index[j] = list_index[j+1];
+                        list_index[j+1] = temp;
+                        swap = true;
+                    }
+
+                }
+                if (!swap){
+                    break;
+                }
+            }
+
+    //* bulkloading the index file
+    j=0;
+        for (i=0;i<N;i++){
+            if (j<b){
+                buffer_index.Tab[j] = list_index[i];
+                buffer_index.nb++;
+                j++;
+            }else{
+                Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+                Alloc_block_index(I);
+                Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+                buffer_index.nb =1;
+                buffer_index.Tab[0] = list_index[i];
+                j=1;
+            }
+        }
+        Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+        printf("index terminated with success\n\n");
 }
 
 int main(){
@@ -340,58 +397,47 @@ int main(){
     block_lof buffer;
     buffer.link = -1;
     buffer.nb = 0;
-    int i,j=0,N,r;
+    int i,j=0,N,r,*list,*list_index;
     fichier_tof_index *I;
-    block_index buffer_i;
+    block_index buffer_index;
 
-    //printf("enter the number of records:\n");
-    //scanf("%d",&N);
-    int *list,len=0;
+    printf("enter the number of records:\n");
+    scanf("%d",&N);
+
+    //* writing the blocks
+
+    open_lnof(&F,"test1",'n');
     
-    //* initiallizing the list
-    list = (int *)malloc(880000*sizeof(int));
-    for (i=0;i<880000;i++){
-        list[i] = 0;
-    }
-
-    //* looking through the blocks
-
-    open_lnof(&F,"test1",'e');
     if (F->f != NULL ){
-        //bulk_load_lof(F,N,list);
+        //* creating the index 
+            open_index(&I,"index_test1",'n');
+        bulk_load_lof(F,I,N);
+        
+        
+        printf("num_blocks=%d\n",get_Header_index(I,"num_block"));
+        //* looking through the index
+        r = rand() % (get_Header_index(I,"num_block") + 1);
+        Read_Block_index(I,&buffer_index,r);
+        j = rand() % (buffer_index.nb + 1);
+        for (i=j;i<(j+30) % (buffer_index.nb + 1);i++){
+            
+            printf("j=%d | key=%d\n",i,buffer_index.Tab[i].key);
+        }
+        printf("reading index block = %d\n",r);
+
+
+        //* looking throught some buffer
         r = rand() % (get_Header_lnof(F,"Lastblk") + 1);
         Read_Block_lnof(F,&buffer,r);
-        
-        //* looking throught the some buffer
         for (i=0;i<20;i++){
             j = rand() % (buffer.nb + 1);
             printf("j=%d | %d %s, %s, %s, %s, %d %d \n\n",j,buffer.Tab[j].Document_id, buffer.Tab[j].Title, buffer.Tab[j].Author, buffer.Tab[j].Type, buffer.Tab[j].Domaine, buffer.Tab[j].Pub_year, buffer.Tab[j].Available_qty);
         }
 
         printf("reading block = %d\n",r);
-        printf("link=%d nb=%d\n",buffer.link,buffer.nb);
+        printf("link=%d nb=%d num_block=%d\n",buffer.link,buffer.nb,get_Header_lnof(F,"Lastblk"));
 
-        /*printf("lastblk in the file=%d\n",get_Header_lnof(F,"Lastblk"));
-        N = rand() % (get_Header_lnof(F,"Lastblk")+1);  
-        //N=get_Header_lnof(F,"Lastblk");
-        Read_Block_lnof(F,&buffer,N);
-        int r=10;
-        //Read_Block_lnof(F,&buffer,0);
-        printf("printing the values of block %d\n",N);
-        printf("link=%d nb=%d\n",buffer.link,buffer.nb);
-        for (i=0;i<r;i++){
-        printf("i=%d: %d %s, %s, %s, %s, %d %d \n\n",i,buffer.Tab[i].Document_id, buffer.Tab[i].Title, buffer.Tab[i].Author, buffer.Tab[i].Type, buffer.Tab[i].Domaine, buffer.Tab[i].Pub_year, buffer.Tab[i].Available_qty);
-        }*/
-
-        /*printf("\n\n");
-        N=get_Header_lnof(F,"Lastblk");
-        Read_Block_lnof(F,&buffer,N);
-        r=min(20,buffer.nb);
-        printf("\nprinting the values of block %d\n",N);
-        printf("link=%d nb=%d\n",buffer.link,buffer.nb);
-        for (i=0;i<r;i++){
-        printf("i=%d: %d %s, %s, %s, %s, %d %d \n\n",i,buffer.Tab[i].Document_id, buffer.Tab[i].Title, buffer.Tab[i].Author, buffer.Tab[i].Type, buffer.Tab[i].Domaine, buffer.Tab[i].Pub_year, buffer.Tab[i].Available_qty);
-        }*/
+        close_index(I);
         close_lnof(F);
     }
 }
