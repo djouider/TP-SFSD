@@ -306,11 +306,11 @@ int min(int x,int y){
     return y;
 }
 
-void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
+void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N,enreg_index *list_index){
     block_lof buffer;
     buffer.nb = 0;
     int i,j=0,id,k=0,*list;
-    enreg_index *list_index = (enreg_index *)malloc(N * sizeof(enreg_index)),temp;
+    enreg_index temp;
     block_index buffer_index;
 
     //* initiallizing the list
@@ -397,12 +397,13 @@ int main(){
     block_lof buffer;
     buffer.link = -1;
     buffer.nb = 0;
-    int i,j=0,N,r,*list,*list_index;
+    int i,j=0,N,r,*list;
     fichier_tof_index *I;
     block_index buffer_index;
 
     printf("enter the number of records:\n");
     scanf("%d",&N);
+    enreg_index *list_index = (enreg_index *)malloc(N * sizeof(enreg_index));
 
     //* writing the blocks
 
@@ -411,7 +412,7 @@ int main(){
     if (F->f != NULL ){
         //* creating the index 
             open_index(&I,"index_test1",'n');
-        bulk_load_lof(F,I,N);
+        bulk_load_lof(F,I,N,list_index);
         
         
         printf("num_blocks=%d\n",get_Header_index(I,"num_block"));
@@ -421,7 +422,8 @@ int main(){
         j = rand() % (buffer_index.nb + 1);
         for (i=j;i<(j+30) % (buffer_index.nb + 1);i++){
             
-            printf("j=%d | key=%d\n",i,buffer_index.Tab[i].key);
+            printf("j=%d | key=%d bloc=%d position=%d\n",i,buffer_index.Tab[i].key, buffer_index.Tab[i].adr_block, buffer_index.Tab[i].position);
+            printf(" list ,j=%d | key=%d bloc=%d position=%d\n\n",i,list_index[i].key, list_index[i].adr_block, list_index[i].position);
         }
         printf("reading index block = %d\n",r);
 
