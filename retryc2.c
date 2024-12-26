@@ -414,8 +414,12 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
     }
 }
 
-void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *position){
+void Search_by_id (fichier_tof_index *I,bool *found,int *block,int *position){
     *found = false;
+    int key;
+
+    printf("\nwhat is the id you are searching for ?\n");
+    scanf("%d",&key);
     if (key < 110000 || key > 990000){
         printf("\n\nkey out of range\n\n");
 

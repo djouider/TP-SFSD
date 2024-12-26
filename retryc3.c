@@ -252,6 +252,44 @@ char *generate_random_type(){
     return type[num_type];
 }
 
+void generate_type(char *typ){
+    char *type[7] = {
+        "","Ouvrages et manuels","Revues et periodiques",
+        "Actes de conferences","Rapports de recherche",
+        "Memoires et theses","Polycopies et support de cours"
+    } ;
+    int num_type;
+    printf("1. Ouvrages et manuels\n2. Revues et periodiques\n3. Actes de conferences\n4. Rapports de recherche\n5. Memoires et theses\n6. Polycopies et support de cours\n");
+    printf("eneter the number of the type\n");
+    scanf("%d",&num_type);
+    while (num_type > 6 || num_type < 1){
+        printf("oops number out of range please try again\n");
+        scanf("%d",&num_type);
+    }
+    strcpy(typ,type[num_type]);
+}
+
+void generate_domaine(char *typ){
+    char *domaine[13] = {
+        "","Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
+        "Cybersecurite","Bases de donnees et gestion des donnees","Reseaux et telecommunications",
+        "Genie logiciel, programmation et developpement logiciel","Informatique graphique, multimedia,vision par ordinateur et traitement d'images",
+        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique"
+    } ;
+    int num_type; 
+    printf("1. Algorithmes et structures de donnees\n2. Intelligence artificielle et apprentissage automatique\n3. Systemes d'exploitation\n4. Cybersecurite\n5. Bases de donnees et gestion des donnees\n6. Reseaux et telecommunications\n7. Genie logiciel, programmation et developpement logiciel\n");
+    printf("8. Informatique graphique, multimedia,vision par ordinateur et traitement d'images\n9. Science des donnees et statistiques\n10. Robotique et systemes embarques\n11. Blockchain et technologies distribuees\n12. Calcul haute performance et informatique quantique\n");
+    printf("eneter the number of the type\n");
+    scanf("%d",&num_type);
+    while (num_type > 12 || num_type < 1)
+    {
+        printf("oops number out of range please try again\n");
+        scanf("%d",&num_type);
+    }
+    
+    strcpy(typ,domaine[num_type]);
+}
+
 char *generate_random_domaine(){
     char *domaine[13] = {
         "","Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
@@ -443,6 +481,136 @@ void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *posi
     }
 }
 
+void read_changes(enreg *e){
+    char field[50];
+
+    int choice;
+        printf("which field you want to change ?\nto stop type exit\n");
+        scanf("%s",field);
+
+        while (strcmp(field,"exit") != 0){
+            
+            //* done title
+            if ((strcmp(field,"Title") == 0) || (strcmp(field,"title") == 0)){
+                printf("\neneter the new value for %s\ndo you want to enter it: 1.manually or 2.generate randomly\nenter 1 or 2 to chose\n",field);
+                scanf("%d",&choice);
+                
+                switch (choice){
+                case 1:
+                    scanf("%s",&(*e).Title);
+                    while (strlen((*e).Title) < 50 || strlen((*e).Title) > 70 ){
+                        printf("the length of the new title is out of range, please try again\n");
+                        scanf("%s",&(*e).Title);
+                    }
+                    break;
+                case 2:
+                    generate_random_title((*e).Title);
+                    printf("the title generated is %s\n",(*e).Title);
+                    break;
+                
+                default:
+                    break;
+                }
+                
+            }
+
+            //* done author
+            if ((strcmp(field,"Author") == 0) || (strcmp(field,"author") == 0)){
+                printf("\neneter the new value for %s\ndo you want to enter it: 1.manually or 2.generate randomly\nenter 1 or 2 to chose\n",field);
+                scanf("%d",&choice);
+                
+                switch (choice){
+                case 1:
+                    scanf("%s",&(*e).Author);
+                    while (strlen((*e).Author) < 4 || strlen((*e).Author) > 30 ){
+                        printf("the length of the new %s is out of range, please try again\n",field);
+                        scanf("%s",&(*e).Author);
+                    }
+                    break;
+                case 2:
+                    generate_random_author((*e).Author);
+                    printf("the %s generated is %s\n",field,(*e).Author);
+                    break;
+                
+                default:
+                    break;
+                }
+                
+            }
+
+            //* done type
+            if ((strcmp(field,"Type") == 0) || (strcmp(field,"type") == 0)){
+                printf("eneter the new value for %s\n",field);
+                generate_type((*e).Type);
+            }
+
+            //* done domaine
+            if ((strcmp(field,"Domaine") == 0) || (strcmp(field,"domaine") == 0)){
+                printf("eneter the new value for %s\n",field);
+                generate_domaine((*e).Domaine);
+                
+            }
+
+            //* done pub_year
+            if ((strcmp(field,"Pub_year") == 0) || (strcmp(field,"pub_year") == 0)){
+                printf("eneter the new value for %s\n",field);
+                scanf("%d",&(*e).Pub_year);
+
+                while ((*e).Pub_year > 2024 || (*e).Pub_year < 1970)
+                {
+                    printf("%s must by between 1970 and 2024\n",field);
+                    scanf("%d",&(*e).Pub_year);
+                }
+                
+                
+            }
+
+            //* done av_qty
+            if ((strcmp(field,"Available_qty") == 0) || (strcmp(field,"available_qty") == 0)){
+                printf("eneter the new value for %s\n",field);
+                scanf("%d",&(*e).Available_qty);
+
+                while ((*e).Available_qty > 10 || (*e).Available_qty < 0)
+                {
+                    printf("%s msut be postive and less than 10\n",field);
+                    scanf("%d",&(*e).Available_qty);
+                }
+                
+            }
+
+            printf("\nwhich field you want to also modify?\nto finsh type exit\n");
+            scanf("%s",field);
+        }
+    
+}
+
+void modify(fichier_lnof *F,fichier_tof_index *I){
+    block_index buffer_index;
+    block_lof buffer;
+    enreg e;
+
+    bool found;
+    int key,block,position;
+
+    printf("\ngive the id of the record you want to modify\n");
+    scanf("%d",&key);
+
+    Search_by_id(I,key,&found,&block,&position);
+    if (found){
+        //the prints are just to see the changes
+        Read_Block_lnof(F,&buffer,block);
+        printf("the %d is in block %d position %d\n",buffer.Tab[position].Document_id,block,position);
+        e = buffer.Tab[position];
+        printf("before | %d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[position].Document_id, buffer.Tab[position].Title, buffer.Tab[position].Author, buffer.Tab[position].Type, buffer.Tab[position].Domaine, buffer.Tab[position].Pub_year, buffer.Tab[position].Available_qty);
+        read_changes(&e);
+        buffer.Tab[position] = e;
+        printf("after | %d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[position].Document_id, buffer.Tab[position].Title, buffer.Tab[position].Author, buffer.Tab[position].Type, buffer.Tab[position].Domaine, buffer.Tab[position].Pub_year, buffer.Tab[position].Available_qty);
+        Write_Block_lnof(F,&buffer,block);
+    } else{
+        printf("\nThe record was not found\n");
+    }
+} 
+
 int main(){
     srand(time(NULL));
     fichier_lnof *F;
@@ -479,18 +647,8 @@ int main(){
         }
         printf("reading block %d\n",r);
         
-        //* searching 
-        printf("\nwhat is the id you are searching for ?\n");
-        scanf("%d",&N);
-
-        Search_by_id(I,N,&found,&i,&j);
-        Read_Block_lnof(F,&buffer,i);
-
-        if (found){
-            printf("the %d is in block %d position %d\n",buffer.Tab[j].Document_id,i,j);
-        } else{
-            printf("oops there was a problem\n");
-        }
+        //* modifying 
+        modify(F,I);
 
 
         close_index(I);
