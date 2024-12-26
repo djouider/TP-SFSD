@@ -345,11 +345,12 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
                 k++;
                 //printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
                 j++;
-                printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
+                //printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
             }
         }
         // writing the last block
         Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+    set_Header_lnof(F,"nrec",N);
     printf("terminated with success\n\n");
 
     //* sorting the list_index
@@ -373,6 +374,7 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
 
     //* bulkloading the index file
     j=0;
+    buffer_index.nb =0;
         for (i=0;i<N;i++){
             if (j<b){
                 buffer_index.Tab[j] = list_index[i];
@@ -388,7 +390,57 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
             }
         }
         Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+        set_Header_index(I,"num_ins",N);
         printf("index terminated with success\n\n");
+}
+
+void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *position){
+    int m,inf = 1,sup = buff.nb;
+    *found = false;
+
+    while(!(*found )&& (inf <= sup)){
+        m = (inf + sup) / 2;
+        if ( buff.Tab[m].key == key ){
+            *found = true;
+            *block = buff.Tab[m].adr_block;
+            *position = buff.Tab[m].position;
+        } else {
+            if (buff.Tab[m].key > key){
+                sup = m - 1 ;
+            } else {
+                inf = m + 1;
+            }
+        }
+    }
+}
+
+void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *position){
+    *found = false;
+    if (key < 110000 || key > 990000){
+        printf("\n\nkey out of range\n\n");
+
+    } else {
+        int m,inf_b = 0,sup_b = get_Header_index(I,"num_block");
+        block_index buff;
+        bool stop=false;
+
+        while(!stop && (inf_b <= sup_b)){
+            m = (inf_b + sup_b)/2;
+
+            Read_Block_index(I,&buff,m);
+
+            if (key > buff.Tab[1].key && key < buff.Tab[buff.nb - 1].key){
+                Recherche_dicho_bufer(buff,key,found,block,position);
+                stop = true;
+            } else {
+                if (key < buff.Tab[1].key){
+                    sup_b = m-1;
+                } else {
+                    inf_b = m +1 ;
+                }
+            }
+        }
+    }
 }
 
 int main(){
