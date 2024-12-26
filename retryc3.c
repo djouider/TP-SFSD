@@ -391,50 +391,87 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
         printf("index terminated with success\n\n");
 }
 
+void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *position){
+    int m,inf = 1,sup = buff.nb;
+    *found = false;
+
+    while(!(*found )&& (inf <= sup)){
+        m = (inf + sup) / 2;
+        if ( buff.Tab[m].key == key ){
+            *found = true;
+            *block = buff.Tab[m].adr_block;
+            *position = buff.Tab[m].position;
+        } else {
+            if (buff.Tab[m].key > key){
+                sup = m - 1 ;
+            } else {
+                inf = m + 1;
+            }
+        }
+    }
+}
+
 int main(){
     srand(time(NULL));
     fichier_lnof *F;
     block_lof buffer;
+    bool found;
     buffer.link = -1;
     buffer.nb = 0;
     int i,j=0,N,r,*list,*list_index;
     fichier_tof_index *I;
     block_index buffer_index;
 
-    printf("enter the number of records:\n");
-    scanf("%d",&N);
 
     //* writing the blocks
 
-    open_lnof(&F,"test1",'n');
+    open_lnof(&F,"test1",'e');
     
     if (F->f != NULL ){
         //* creating the index 
-            open_index(&I,"index_test1",'n');
-        bulk_load_lof(F,I,N);
+        open_index(&I,"index_test1",'e');
         
         
         printf("num_blocks=%d\n",get_Header_index(I,"num_block"));
         //* looking through the index
         r = rand() % (get_Header_index(I,"num_block") + 1);
+        r =4;
         Read_Block_index(I,&buffer_index,r);
+
         j = rand() % (buffer_index.nb + 1);
         for (i=j;i<(j+30) % (buffer_index.nb + 1);i++){
             
-            printf("j=%d | key=%d\n",i,buffer_index.Tab[i].key);
+            printf("j=%d | key=%d block=%d position=%d\n",i,buffer_index.Tab[i].key,buffer_index.Tab[i].adr_block,buffer_index.Tab[i].position);
         }
-        printf("reading index block = %d\n",r);
+        printf("reading index block = %d\n\n",r);
+
+
+        //* testing the recher_dicho_bufer
+        printf("enter the key you are looking for\n");
+        scanf("%d",&N);
+
+        Read_Block_index(I,&buffer_index,r);
+        Recherche_dicho_bufer(buffer_index,N,&found,&i,&j);
+
+        if (found){
+            printf("the key %d can be found in block %d and position %d\n\n",N,i,j);
+            printf("testing\n");
+            Read_Block_lnof(F,&buffer,i);
+            printf("the key %d is in block %d in postion %d\n",buffer.Tab[j].Document_id,i,j);
+        } else{
+            printf("oops there is a problem\n");
+        }
 
 
         //* looking throught some buffer
-        r = rand() % (get_Header_lnof(F,"Lastblk") + 1);
+        /*r = rand() % (get_Header_lnof(F,"Lastblk") + 1);
         Read_Block_lnof(F,&buffer,r);
         for (i=0;i<20;i++){
             j = rand() % (buffer.nb + 1);
             printf("j=%d | %d %s, %s, %s, %s, %d %d \n\n",j,buffer.Tab[j].Document_id, buffer.Tab[j].Title, buffer.Tab[j].Author, buffer.Tab[j].Type, buffer.Tab[j].Domaine, buffer.Tab[j].Pub_year, buffer.Tab[j].Available_qty);
         }
 
-        printf("reading block = %d\n",r);
+        printf("reading block = %d\n",r);*/
         printf("link=%d nb=%d num_block=%d\n",buffer.link,buffer.nb,get_Header_lnof(F,"Lastblk"));
 
         close_index(I);
