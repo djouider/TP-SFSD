@@ -344,6 +344,29 @@ int min(int x,int y){
     return y;
 }
 
+void sort_list(enreg_index *list_index,int len){
+    int i,j;
+    bool swap;
+    enreg_index temp;
+
+    for(i=0;i<len-1;i++){
+    swap = false;
+        for (j=0;j<len-i-1;j++){
+                    
+            if (list_index[j].key > list_index[j+1].key){
+                temp = list_index[j];
+                list_index[j] = list_index[j+1];
+                list_index[j+1] = temp;
+                        swap = true;
+            }
+
+        }
+        if (!swap){
+            break;
+        }
+    }
+}
+
 void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
     block_lof buffer;
     buffer.nb = 0;
@@ -356,6 +379,10 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
     for (i=0;i<880000;i++){
         list[i] = 0;
     }
+    if (list == NULL || list_index == NULL){
+        printf("ERROR: Memory allocation problem in bulk_load");
+    } else {
+
         //* starting to fill   
         for (i=0;i<N;i++){
             if ( j < b){
@@ -392,23 +419,7 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
     printf("terminated with success\n\n");
 
     //* sorting the list_index
-    bool swap;
-            for(i=0;i<N-1;i++){
-                swap = false;
-                for (j=0;j<N-i-1;j++){
-                    
-                    if (list_index[j].key > list_index[j+1].key){
-                        temp = list_index[j];
-                        list_index[j] = list_index[j+1];
-                        list_index[j+1] = temp;
-                        swap = true;
-                    }
-
-                }
-                if (!swap){
-                    break;
-                }
-            }
+    sort_list(list_index,N);
 
     //* bulkloading the index file
     j=0;
@@ -427,9 +438,10 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
                 j=1;
             }
         }
-        Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-        set_Header_index(I,"num_ins",N);
-        printf("index terminated with success\n\n");
+    Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+    set_Header_index(I,"num_ins",N);
+    printf("index terminated with success\n\n");
+    }
 }
 
 void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *position){
@@ -490,7 +502,6 @@ void read_changes(enreg *e){
 
         while (strcmp(field,"exit") != 0){
             
-            //* done title
             if ((strcmp(field,"Title") == 0) || (strcmp(field,"title") == 0)){
                 printf("\neneter the new value for %s\ndo you want to enter it: 1.manually or 2.generate randomly\nenter 1 or 2 to chose\n",field);
                 scanf("%d",&choice);
@@ -514,7 +525,6 @@ void read_changes(enreg *e){
                 
             }
 
-            //* done author
             if ((strcmp(field,"Author") == 0) || (strcmp(field,"author") == 0)){
                 printf("\neneter the new value for %s\ndo you want to enter it: 1.manually or 2.generate randomly\nenter 1 or 2 to chose\n",field);
                 scanf("%d",&choice);
@@ -538,20 +548,17 @@ void read_changes(enreg *e){
                 
             }
 
-            //* done type
             if ((strcmp(field,"Type") == 0) || (strcmp(field,"type") == 0)){
                 printf("eneter the new value for %s\n",field);
                 generate_type((*e).Type);
             }
 
-            //* done domaine
             if ((strcmp(field,"Domaine") == 0) || (strcmp(field,"domaine") == 0)){
                 printf("eneter the new value for %s\n",field);
                 generate_domaine((*e).Domaine);
                 
             }
 
-            //* done pub_year
             if ((strcmp(field,"Pub_year") == 0) || (strcmp(field,"pub_year") == 0)){
                 printf("eneter the new value for %s\n",field);
                 scanf("%d",&(*e).Pub_year);
@@ -565,7 +572,6 @@ void read_changes(enreg *e){
                 
             }
 
-            //* done av_qty
             if ((strcmp(field,"Available_qty") == 0) || (strcmp(field,"available_qty") == 0)){
                 printf("eneter the new value for %s\n",field);
                 scanf("%d",&(*e).Available_qty);
@@ -611,6 +617,30 @@ void modify(fichier_lnof *F,fichier_tof_index *I){
     }
 } 
 
+void load_index(fichier_tof_index *I,enreg_index *list){
+    int i,k=0,j,num = get_Header_index(I,"num_block");
+    block_index buff;
+
+    for (i=0;i<=num;i++){
+        Read_Block_index(I,&buff,i);
+        for (j=0;j<buff.nb;j++){
+            list[k] = buff.Tab[j];
+            k++;
+        }
+    }
+}
+
+enreg_index *resize_list_index (enreg_index *list,int len){
+    enreg_index *newlist = realloc(list,len * sizeof(enreg_index));
+    
+    if( newlist == NULL) {
+        printf("ERROE, Memory allocation failed\n");
+        return NULL;
+    }
+
+    return newlist;
+}
+
 int main(){
     srand(time(NULL));
     fichier_lnof *F;
@@ -618,10 +648,10 @@ int main(){
     bool found;
     buffer.link = -1;
     buffer.nb = 0;
-    int i,j=0,N,r,*list,*list_index,cpt = 1;
+    int i,j=0,N,r,*list,cpt = 1;
     fichier_tof_index *I,*I2;
+    enreg_index *list_index = (enreg_index*)malloc(sizeof(enreg_index));
     block_index buffer_index;
-
 
     //* writing the blocks
 
@@ -633,23 +663,19 @@ int main(){
         
         //bulk_load_lof(F,I,5000);
 
-        //* seeing the numbe rof blocks in each file : all allright
-
-        //* looking at some block /all blocks have nb normale /reading noremale
-
-        r = rand() % (get_Header_index(I,"num_block") + 1);
-        Read_Block_index(I,&buffer_index,r);
-        
-        j = rand() % (buffer_index.nb + 1);
-        for (i=j;i<(j+30) % (buffer_index.nb + 1);i++){
-            
-            printf("j=%d | key= %d block= %d position= %d\n",i,buffer_index.Tab[i].key,buffer_index.Tab[i].adr_block,buffer_index.Tab[i].position);
+        list_index = resize_list_index(list_index,get_Header_index(I,"num_ins")); 
+        if (list_index == NULL){
+            printf("ERROR: Memory allocation failed for list_index in main\n");
+            return 0;
         }
-        printf("reading block %d\n",r);
-        
-        //* modifying 
-        modify(F,I);
 
+        load_index(I,list_index);
+        r = rand() % (get_Header_index(I,"num_ins") + 1);
+
+        for (i=r;i<r+10;i++){
+            printf("i=%d | key= %d block= %d position= %d\n\n",i,list_index[i].key,list_index[i].adr_block,list_index[i].position);
+        }
+        printf("looking the list from i=%d\n",r);
 
         close_index(I);
         close_lnof(F);
