@@ -1,0 +1,1 @@
+rintf("true?=%x\n",list2[len % 880000] == 1);

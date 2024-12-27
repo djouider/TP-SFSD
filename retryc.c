@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
-#include "time.c"
+
 
 #define b 1024
 
@@ -63,6 +63,7 @@ void open_lnof(fichier_lnof **F,char filename[], char mode){ //F->f will be poin
         buffer.link =-1;
         fwrite(&buffer,sizeof(block_lof),1,(*F)->f);
     }
+    printf("--LnOF file opened succesfuly\n");
 }
 
 void close_lnof(fichier_lnof *F){
@@ -73,16 +74,15 @@ void close_lnof(fichier_lnof *F){
     printf("--LnOF file closed succesfuly\n");
 }
 
-int get_Header_lnof(fichier_lnof *F,const char *field){
+int get_Header_lnof(fichier_lnof *F,char *field){
     if (strcmp(field, "Firstblk") == 0) return F->h.Firstblk;
     if (strcmp(field, "Lastblk") == 0) return F->h.Lastblk;
     if (strcmp(field, "nrec") == 0) return F->h.nrec;
     if (strcmp(field, "ndel") == 0) return F->h.ndel;
     fprintf(stderr, "getHeader : Unknown headerName: \"%s\"\n", field);
-    return 0;
 }
 
-void set_Header_lnof(fichier_lnof *F,const char *field,int val){
+void set_Header_lnof(fichier_lnof *F,char *field,int val){
     if (strcmp(field, "Firstblk") == 0) {F->h.Firstblk = val ;return;}
     if (strcmp(field, "Lastblk") == 0) {F->h.Lastblk = val ; return;}
     if (strcmp(field, "nrec") == 0) {F->h.nrec = val ; return;}
@@ -179,15 +179,14 @@ void close_index( fichier_tof_index *F )
 }
 
 
-int get_Header_index(fichier_tof_index *F,const char *field){
+int get_Header_index(fichier_tof_index *F,char *field){
     if (strcmp(field, "num_block") == 0) return F->h.num_block;
     if (strcmp(field, "num_ins") == 0) return F->h.num_ins;
     if (strcmp(field, "num_del") == 0) return F->h.num_del;
     fprintf(stderr, "getHeader_index : Unknown headerName: \"%s\"\n", field);
-    return 0;
 }
 
-void set_Header_index(fichier_tof_index *F,const char *field,int val){
+void set_Header_index(fichier_tof_index *F,char *field,int val){
     if (strcmp(field, "num_block") == 0) {F->h.num_block = val ;return;}
     if (strcmp(field, "num_ins") == 0) {F->h.num_ins = val ; return;}
     if (strcmp(field, "num_del") == 0) {F->h.num_del = val ; return;}
@@ -220,7 +219,6 @@ bool find_list(int *list, int len,int N){
     {
         if (list[i] == N){
             found = true;
-            break;
         }
         i++;
     }
@@ -228,17 +226,14 @@ bool find_list(int *list, int len,int N){
 }
 
 int generate_random_id(int *list, int *len){
-	int cpt=0;
     int n;bool f;
     do {
-    	cpt++;
-        n = 110000 +  rand()*1000 % (880001);
+        n = 110000 +  rand() % (880001);
         //n = 1 +  rand() % (30);
         f = find_list(list,*len,n);
         //printf("n=%d, f=%x\n",n,f);
     }while(f);
     //printf("\n");
-    printf("%d",cpt);
     list[(*len)] = n;
     (*len)++;
     return n;
@@ -263,7 +258,7 @@ void generate_random_author(char author[31]){
 } 
 
 char *generate_random_type(){
-     char *type[7] = {
+    char *type[7] = {
         "","Ouvrages et manuels","Revues et periodiques",
         "Actes de conferences","Rapports de recherche",
         "Memoires et theses","Polycopies et support de cours"
@@ -310,41 +305,18 @@ void fill_buffer(block_lof *buffer,int j,int *list, int *len){
     (*buffer).Tab[j].Available_qty = generate_random_quantite();
 }
 
-int Min(int x, int y){
+int min(int x,int y){
     if(x<y) return x;
     return y;
 }
 
-void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
+void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len){
     block_lof buffer;
     buffer.nb = 0;
-    int i,j=0,hide=0,succes=1;
-    
-    Time elapsed, remaining;
-    long temp,bruh;
-    float perc;
-    
+    int i,j=0;
         //* starting to fill
-        system("cls");
-		new_timer(); //start a timer
-		printf("\033[10;75HPress D to hide or show");
-    	printf("\033[25;72H Press Esc to abort the process");
-    	
-    	
+
         for (i=0;i<N;i++){
-        	
-          	if(!hide) // Show details
-    		{
-    			perc=(float)i/N*100;
-    			temp=Update_timer();
-    			convert_long_to_time(temp,&elapsed);
-    			bruh=temp*((((float)N-i)/i));
-   			 	convert_long_to_time(bruh,&remaining);
-   			 	printf("\033[15;84H%.1f%%",perc);
-    			printf("\033[17;66H\x1b[2KTime elapsed: %d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);
-    			printf("\033[19;65H\x1b[2KTime remaining: %d hours %d minutes %d seconds",remaining.hours,remaining.minutes,remaining.seconds);
-    		}
-    	
             if ( j< b){
                 fill_buffer(&buffer,j,list1,len);
                 buffer.nb++;
@@ -358,55 +330,13 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time){
                 fill_buffer(&buffer,j,list1,len);
                 j++;
             }
-            
-            if(kbhit())
-    		{
-    			if (Esc())
-    			{
-    				system("cls");
-    				printf("Process canceled");
-    				succes=0;
-    				break;
-				}
-    			if (getch()=='d')
-    			{
-    				if(!hide)
-    				{
-    					system("cls");
-    					printf("\033[10;75H Press D to hide or show");
-    					printf("\033[25;72H Press Esc to abort the process");
-    					hide=1;
-    				}
-    				else
-    				{
-    					hide=0;
-    				}
-    			}
-			}
         }
         // writing the last block
-        if(succes)
-        {
- 	       Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
- 		   printf("terminated with success\n");
-		}
-		sprintf(time,"%d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);// returning time took
+        Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+    printf("terminated with success\n");
 }
 
-int check_file_existance(const char *fname)
-{
-	FILE *file;
-    if ((file = fopen(fname, "r")))
-    {
-        fclose(file);
-        return 1;
-    }
-    return 0;
-}
-
-
-
-/*int main(){
+int main(){
     srand(time(NULL));
     fichier_lnof *F;
     block_lof buffer;
@@ -443,7 +373,7 @@ int check_file_existance(const char *fname)
    // printf("%d",generate_random_id(list,&len));
     //resizing
     //initial_load_lof(F,N);
- /*   open_lnof(&F,"test1",'n');
+    open_lnof(&F,"test1",'n');
     if (F->f !=NULL ){
         printf("lastblk=%d\n",get_Header_lnof(F,"Lastblk"));
         //Read_Block_lnof(F,&buffer,0);
@@ -467,7 +397,7 @@ int check_file_existance(const char *fname)
         }
         // writing the last block
         Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));*/
- /*       printf("lastblk in the file=%d\n",get_Header_lnof(F,"Lastblk"));
+        printf("lastblk in the file=%d\n",get_Header_lnof(F,"Lastblk"));
         N = rand() % (get_Header_lnof(F,"Lastblk")+1);  
         //N=get_Header_lnof(F,"Lastblk");
         Read_Block_lnof(F,&buffer,N);
@@ -482,7 +412,7 @@ int check_file_existance(const char *fname)
         printf("\n\n");
         N=get_Header_lnof(F,"Lastblk");
         Read_Block_lnof(F,&buffer,N);
-        r=Min(20,buffer.nb);
+        r=min(20,buffer.nb);
         printf("\nprinting the values of block %d\n",N);
         printf("link=%d nb=%d\n",buffer.link,buffer.nb);
         for (i=0;i<r;i++){
@@ -490,4 +420,4 @@ int check_file_existance(const char *fname)
         }
         close_lnof(F);
     }
-}*/
+}

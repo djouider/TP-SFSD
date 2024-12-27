@@ -1,5 +1,5 @@
-#include "final_menu.c"
-#include "lof_modal.c"
+
+#include "retry.c"
 
 
 
@@ -31,15 +31,22 @@ void slow_printf(const char message[],int time) /// write a message slowly
 }
 
 
+
+
 int main()
 {
 	fichier_htof *H;
+	fichier_lnof *F;
+	
+	henreg val;
+	cost cout;
 	int fs=1;
-	int choice;
-	char Color1[]="\033[0;104m",Color2[]="\033[1;32m"; //colors to use in the menu
+	int choice,N=100000;
+	int list[N],len=0;
+	char Color1[]="\033[0;104m",Color2[]="\033[1;32m",time[20]; //colors to use in the menu
 	
-	
-	open_htof(&H,"History,bin",'E');
+	cout.read=0;
+	cout.write=0;
 	fullscreen(); //making the cmd appear in fullscreen
 	
 	///Introduction
@@ -59,35 +66,169 @@ int main()
 	do //////////main menu///////////
 	{
 		system("cls");
-		choice=menu(fs,Color1,Color2,"Main Menu","File Management","File Browsing","History","Settings","Exit");
+		choice=menu(fs,Color1,Color2,"Main Menu","File Management","Extras","History","Settings","Exit");
 		
 		switch(choice)
 		{
 			case 1:
 				{
+					if(check_file_existance("DOCUMENTS_LIBRARY.BIN"))
+					{
 					do
 					{
 					/////////////File Management////////////
 					system("cls");
-					choice=menu(fs,Color1,Color2,"File Management","Add/Remove to file","","","","Exit");
+					choice=menu(fs,Color1,Color2,"File Management","Overview","Modify file","Generate new file","Magazine","Exit");
 					switch(choice)
 					{
+						
 						case 1:
+						{
+							////////Overview//////////	
+						}
+						choice=0;
+						break;
+						
+						case 2:
 							{
-								/////////Bulk Loading/////////
+								do ////////Modify//////////
+								{
+									system("cls");
+									choice=menu(fs,Color1,Color2,"Modify file","Modify value","Add to file","Delete from file","","Exit");
+									switch(choice)
+									{
+										case 1:
+										{
+											//////Modify Value//////
+										}
+										choice=0;
+										break;
+										
+										case 2:
+										{
+											///////Add to file///////
+										}
+										choice=0;
+										break;
+										
+										case 3:
+										{
+											////////Delete from file/////		
+										}
+										choice=0;
+										break;
+										
+									}
+								}while(choice!=5);	
+							}
+							choice=0;
+							break;
+							
+							
+							
+						case 3:
+							{
+								////////////Generate new file/////////
+							}
+							choice=0;
+							break;
+							
+						case 4:
+							{
+								do		///////////////Magazine//////////////
+								{
+									system("cls");
+									choice=menu(fs,Color1,Color2,"Magazine","Update Magazines","overview","Delete from Magazines","","Exit");
+									switch(choice)									
+									{
+										case 1:
+											{
+												///////////Update magazine///////
+											}
+											choice=0;
+											break;
+											
+											
+										case 2:
+											{
+												//////////Overview Magazine//////////
+											}
+											choice=0;
+											break;
+											
+										case 3:
+											{
+												////////////Delete Magazine////////
+											}
+											choice=0;
+											break;
+											
+										
+									}
+								}while(choice!=5);
 								
 							}
 							choice=0;
 							break;
-					}
+						}
 					}while(choice!=5);
+					}
+					else
+					{
+						////////////Bulk Loading//////////
+						system("cls");
+						printf("					Your file deosnt exist \n\n\n			Would you like to open a new one and bulk load it?\n\n\n Press enter if yes and Esc if no");
+						do
+						{
+							if(Esc())
+							{
+								clear_stdin();break;
+							}
+							if(Enter())
+							{
+								clear_stdin();
+								system("cls");
+								printf("Pls choose the number of books that u want to initialise your file with or enter 0 to default value(100,000)");
+								scanf("%d", &N);
+								if(!N)
+								{
+									N=100000;///Default value
+								}
+								system("cls");
+								open_lnof(&F,"DOCUMENTS_LIBRARY.BIN",'N');
+								bulk_load_lof(F,N,list,&len,time);
+								/////////Update history/////////////////
+								if(check_file_existance("History.bin"))
+								{
+									open_htof(&H,"History.bin",'E');
+								}
+								else
+								{
+									open_htof(&H,"History.bin",'N');
+								}
+								set_date(&val);
+								printf("date");
+								sprintf(val.Operation,"Bulk loading");
+								val.cout=cout;
+								sprintf(val.time,time);
+								sprintf(val.status,"Successfull");
+								val.number=N;
+								Add_history(H,val);
+								close_htof(H);
+								////////////////////
+								break;
+								
+							}
+						}while(1);
+					}
+				
 				}
 				choice=0;
 				break;
 			
 			case 2:
 				{
-					////////////File Browsing///////////////
+					////////////Extras///////////////
 				}
 				choice=0;
 				break;
@@ -96,8 +237,22 @@ int main()
 			case 3:
 				{
 					///////////History////////////////////
-					
+					if(check_file_existance("History.bin")) ///File exists
+					{
+					open_htof(&H,"History.bin",'E');
 					show_history(H,fs);
+					close_htof(H);
+					}
+					else
+					{
+						system("cls");
+						if(fs)
+						{
+						printf("\n\n\n\n\n\n\n\n\n					Your history is empty\n\n\n					Make some Operations to add something");
+						printf("\n\n\n\nPress  Anything to go back");
+						getch();
+						}
+					}
 				}
 				choice=0;
 				break;
@@ -143,6 +298,7 @@ int main()
 												sprintf(Color1,"\033[0;103m");
 												break;
 										}
+										choice=0;
 										break;
 									
 									case 3 :
@@ -170,13 +326,13 @@ int main()
 											}
 										}
 									}
-									
+									choice=0;
 									break;
 									
 							}
 							}while(choice!=5);
-							choice=0;
 						}
+						choice=0;
 						break;
 						
 						
@@ -184,10 +340,23 @@ int main()
 					{
 						////////////Reset History/////////////	
 						system("cls");
-						Reset_History(H);
-						printf("your history has been deleted successfully\n\npress anything to go back");
+						if(check_file_existance("History.bin"))
+						{
+							if(!(remove("History.bin")))///Delete the file
+							printf("your history has been deleted successfully\n\npress anything to go back");
+							else
+							{
+								printf("There was a problem deleting your history pls retry later");
+							}
+						}
+						else
+						{
+							printf("your history is already empty\n\npres anything to go back");
+						}
 						getch();
 					}	
+					choice=0;
+					break;
 						
 						
 						
@@ -196,23 +365,18 @@ int main()
 							////////////////Resolution////////////////
 							do{
 								system("cls");
-								printf("%d",fs);
 								choice=menu(fs,Color1,Color2,"Resolution","","Fullscreen","Windowed","","Exit");
 								switch(choice)
 								{
 									case 2 :
 										{
 										//////////Fullscreen/////////
-										if(fs==1)
+										if(!fs)
 										{
-											perror("You are already in fullscreen mode");
-										}
-										else
-										{
-
 											fullscreen();
 											fs=1;
 											choice=5;
+											sleep(1);
 										}
 										}
 										break;
@@ -220,11 +384,7 @@ int main()
 									case 3 :
 										{
 										////////Windowed//////////
-										if(fs==0)
-										{
-											perror("You are already in windowed mode");
-										}
-										else
+										if(fs)
 										{
 											fullscreen();
 											fs=0;
@@ -235,14 +395,14 @@ int main()
 								}
 																						
 						}while(choice!=5);
-						choice =0;
 						}
+						choice =0;
 						break;
 					}
 		
 				}while(choice!=5);
-				choice=0;
 				}
+				choice=0;
 				break;
 	
 		}
