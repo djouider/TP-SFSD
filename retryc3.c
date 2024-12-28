@@ -472,7 +472,7 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
             *found = true;
             *block = buff.Tab[m].adr_block;
             *position = buff.Tab[m].position;
-            printf("key = %d  %d %d\n",key,*block,*position);
+            printf("key = %d  %d %d position in list_inedx = %d",key,*block,*position,m);
         } else {
             if (buff.Tab[m].key > key){
                 sup = m - 1 ;
@@ -541,6 +541,7 @@ void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *posi
 
             if (key > buff.Tab[1].key && key < buff.Tab[buff.nb - 1].key){
                 Recherche_dicho_bufer(buff,key,found,block,position);
+                printf(" bloc in index_file=%d\n",m);
                 stop = true;
             } else {
                 if (key < buff.Tab[1].key){
@@ -812,44 +813,50 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
                     }
 
                     adr = index / b; 
-                    cnd = b*adr;
+                    cnd = index; //b * adr
+                    j = index % b;
 
-
+                    Read_Block_index(I,&buffer_index,adr);
                     for (i=cnd;i<get_Header_index(I,"num_ins");i++){
-                        if (index < b) {
-                            buffer_index.Tab[index] = list_index[b*adr + index];
+                        if (j < b) {
+                            buffer_index.Tab[j] = list_index[index];
                             //printf("nb = %d\n",buffer_index.nb);
+                            j++;
                         index++;
                         } else {
                             Write_Block_index(I,&buffer_index,adr); 
                             adr++;
-                            printf("adr = %d num_block=%d i=%d index= %d\n",adr,get_Header_index(I,"num_block"),i,index);
+                            printf("first adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
                             Read_Block_index(I,&buffer_index,adr);
-                            index = 0;
-                            buffer_index.Tab[index] = list_index[b*adr + index];
+                            buffer_index.Tab[0] = list_index[index];
+                            j=1;
+                            index++;
                         }
                     }
                     Write_Block_index(I,&buffer_index,adr);
 
                     cnd = i;
-                    for (i=cnd;nrec;i++){ //adding the new values
-                        if (index < b) {
-                            buffer_index.Tab[index] = list_index[b*adr + index];
+                    for (i=cnd;i<nrec;i++){ //adding the new values
+                        if (j < b) {
+                            buffer_index.Tab[j] = list_index[index];
                             //printf("nb = %d\n",buffer_index.nb);
                             index++;
+                            j++;
                             buffer_index.nb++;
                         } else {
                             Write_Block_index(I,&buffer_index,adr); 
                             adr++;
                             Alloc_block_index(I);
-                            printf("adr = %d num_block=%d i=%d index= %d\n",adr,get_Header_index(I,"num_block"),i,index);
-                            Read_Block_index(I,&buffer_index,adr);
-                            index = 0;
-                            buffer_index.Tab[index] = list_index[b*adr + index];
+                            printf("second adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
+                            buffer_index.Tab[0] = list_index[index];
+                            j=1;
+                            index++;
                             buffer_index.nb = 1;
                         }
                     }
-                    Write_Block_index(I,&buffer_index,adr);
+                    printf("second adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
+                    Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+                    printf("key = %d\n",buffer_index.Tab[0]);
                     /*q = nrec / b;
                     r = nrec % b;
                     while (get_Header_index(I,"num_block") != q){
@@ -936,7 +943,8 @@ int main(){
         printf("looking in the last block in the file:\n");
 
         Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-        r = buffer.nb - 6;
+        r=max(buffer.nb-6,0);
+        
         printf("last= %d\n",get_Header_lnof(F,"Lastblk"));
 
         for (i=r;i<buffer.nb;i++){
@@ -951,12 +959,14 @@ int main(){
         printf("looking in the last block in the file:\n");
 
         Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+        Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
         r=max(buffer.nb-6,0);
         
         printf("r= %d nb=%d\n",r,buffer.nb);
         for (i=r;i<buffer.nb;i++){
             N = buffer.Tab[i].Document_id;
-            printf("%d %s, %s, %s, %s, %d %d \n\n",N, buffer.Tab[i].Title, buffer.Tab[i].Author, buffer.Tab[i].Type, buffer.Tab[i].Domaine, buffer.Tab[i].Pub_year, buffer.Tab[i].Available_qty);
+            printf("%d %s, %s, %s, %s, %d %d \n",N, buffer.Tab[i].Title, buffer.Tab[i].Author, buffer.Tab[i].Type, buffer.Tab[i].Domaine, buffer.Tab[i].Pub_year, buffer.Tab[i].Available_qty);
+            printf("key in index position %d is %d i=%d j=%d\n\n",i,buffer_index.Tab[i].key,buffer_index.Tab[i].adr_block,buffer_index.Tab[i].position);
         }
         printf("nb= %d,i=%d\n",buffer.nb,i);
 
@@ -971,6 +981,12 @@ int main(){
             printf("it was not found\n");
         }
 
+        printf("searching in the list\n");
+        if (search_list(list_index,get_Header_index(I,"num_ins"),N,&j)){
+                        printf("%d was found in position %d\n",N,j);
+                    } else {
+                        printf("%d was not found in the list\n",N);
+                    }
         close_index(I);
         close_lnof(F);
     }
