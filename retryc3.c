@@ -211,6 +211,13 @@ void Alloc_block_index (fichier_tof_index *F){
     Write_Block_index(F,&buf,get_Header_index(F,"num_block"));
 }
 
+void Alloc_block_index_1024 (fichier_tof_index *F){
+    block_index buf;
+    buf.nb =1024;
+    set_Header_index(F,"num_block",get_Header_index(F,"num_block")+1);
+    Write_Block_index(F,&buf,get_Header_index(F,"num_block"));
+}
+
 bool find_list(int *list, int len,int N){
     int i=0 ;
     bool found=false;
@@ -312,6 +319,13 @@ int generate_random_quantite(){
 void tocpy(){
     block_lof buffer;
     printf("%d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[0].Document_id, buffer.Tab[0].Title, buffer.Tab[0].Author, buffer.Tab[0].Type, buffer.Tab[0].Domaine, buffer.Tab[0].Pub_year, buffer.Tab[0].Available_qty);
+    /*Search_by_id(I,N,&found,&i,&j);
+        if (found){
+            Read_Block_lnof(F,&buffer,i);
+            printf(" it was found in block %d position %d and value %d\n",i,j,buffer.Tab[j].Document_id);
+        } else{
+            printf("it was not found\n");
+        }*/
 }
 
 int generate_random_id(int *list){
@@ -341,6 +355,10 @@ void fill_buffer(block_lof *buffer,int j,int *list,int *id){
 
 int min(int x,int y){
     if(x<y) return x;
+    return y;
+}
+int max(int x,int y){
+    if(x>y) return x;
     return y;
 }
 
@@ -454,6 +472,7 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
             *found = true;
             *block = buff.Tab[m].adr_block;
             *position = buff.Tab[m].position;
+            printf("key = %d  %d %d\n",key,*block,*position);
         } else {
             if (buff.Tab[m].key > key){
                 sup = m - 1 ;
@@ -462,6 +481,47 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
             }
         }
     }
+}
+
+void Recherche_dicho_list(enreg_index *list_index,int len,int key,bool *found,int *block,int *position){
+    int m,inf = 1,sup =len;
+    *found = false;
+
+    while(!(*found )&& (inf <= sup)){
+        m = (inf + sup) / 2;
+        if ( list_index[m].key == key ){
+            *found = true;
+            *block = list_index[m].adr_block;
+            *position = list_index[m].position;
+        } else {
+            if (list_index[m].key > key){
+                sup = m - 1 ;
+            } else {
+                inf = m + 1;
+            }
+        }
+    }
+}
+
+bool search_list(enreg_index *list_index,int len,int key,int *position){
+    int m,inf = 1,sup =len;
+    bool found=false;
+
+    while((!found) && (inf <= sup)){
+        m = (inf + sup) / 2;
+        if ( list_index[m].key == key ){
+            printf("%d was found\n",key);
+            found = true;
+            *position = m;
+        } else {
+            if (list_index[m].key > key){
+                sup = m - 1 ;
+            } else {
+                inf = m + 1;
+            }
+        }
+    }
+    return found;
 }
 
 void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *position){
@@ -620,9 +680,10 @@ void modify(fichier_lnof *F,fichier_tof_index *I){
 void load_index(fichier_tof_index *I,enreg_index *list){
     int i,k=0,j,num = get_Header_index(I,"num_block");
     block_index buff;
-
+   
     for (i=0;i<=num;i++){
         Read_Block_index(I,&buff,i);
+        printf("\nnum = %d nb= %d",i,buff.nb);
         for (j=0;j<buff.nb;j++){
             list[k] = buff.Tab[j];
             k++;
@@ -641,6 +702,199 @@ enreg_index *resize_list_index (enreg_index *list,int len){
     return newlist;
 }
 
+void fill_document_random(enreg *e,enreg_index *list_index,int len){
+    char titre[71];
+    char author[31];
+    int id,i,j;
+    bool found;
+
+    generate_random_title(titre);
+    generate_random_author(author);
+    strcpy( (*e).Title,titre);
+    strcpy( (*e).Author,author);
+    do {
+        id = 110000 + (rand() * rand()) % (880001);
+        Recherche_dicho_list(list_index,len,id,&found,&i,&j);
+    } while (found);
+    (*e).Document_id = id;
+    strcpy( (*e).Type,generate_random_type());
+    strcpy( (*e).Domaine,generate_random_domaine());
+    (*e).Pub_year = generate_random_year();
+    (*e).Available_qty = generate_random_quantite();
+}
+
+void Read_record(enreg *e,enreg_index *list_index,int len) {
+    int num,cpt=0,choice;
+
+    printf("how many documents you want to add ?\n");
+    scanf("%d",&num);
+
+    while (num > 0 && choice != 0){
+        printf("do you want to generate it:\n1. manually\n2. automatic\n0. to exit\n");
+        do{
+            scanf("%d",&choice);
+        } while (choice != 1 || choice != 2 || choice !=0);
+        switch (choice){
+            case 1:
+
+                cpt++;
+                break;
+            
+            case 2:
+                fill_document_random(&e[cpt],list_index,len);
+                cpt++;
+                break;
+            
+            default :
+                break;
+        }
+
+    }   
+}
+
+void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
+    int num,choice,i,cpt=0,nrec=get_Header_lnof(F,"nrec"),adr = get_Header_lnof(F,"Lastblk"),min=990001,index,j,cnd,q,r;
+    enreg document;
+    block_lof buffer;
+    block_index buffer_index;
+
+    printf("how many documents you want to add ?\n");
+        scanf("%d",&num);
+
+    if (num > 0 ){
+        printf("how do you want to generate them ?\n1. manually\n2. automaticlly\n");
+            scanf("%d",&choice);
+            printf("\nenterign choice 2\n\n");
+            switch (choice){
+                case 1: //manually
+
+                    break;
+
+                case 2: //autimatticlly
+                    printf("before list_index\n");
+                    list_index = resize_list_index(list_index,nrec+num);
+                    Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+
+                    //* filling the lnof file
+                    for (i=0;i<num;i++){
+                        fill_document_random(&document,list_index,nrec);
+                        if ( buffer.nb < b){
+                            buffer.Tab[buffer.nb] = document;
+                            buffer.nb++;
+                        } else {
+                            Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+                            Alloc_block_lnof(F);
+                            Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+                            buffer.nb = 1;
+                            buffer.Tab[0] = document;
+                        }
+                        Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+
+                        //* filling the list
+                        list_index[nrec].key = document.Document_id;
+                        //printf("document_id= %d\n",document.Document_id);
+                        if (document.Document_id < min) {
+                            min = document.Document_id;
+                        }
+                        list_index[nrec].adr_block =  adr;
+                        list_index[nrec].position = buffer.nb-1;
+                        nrec++;
+                    }
+
+                    //* sorting the list
+                    sort_list(list_index,nrec);
+
+                    //* filling the index file 
+                    if (search_list(list_index,nrec,min,&index)){
+                        printf("%d was found in position %d\n",min,index);
+                    } else {
+                        printf("%d was not found in the list\n",min);
+                    }
+
+                    adr = index / b; 
+                    cnd = b*adr;
+
+
+                    for (i=cnd;i<get_Header_index(I,"num_ins");i++){
+                        if (index < b) {
+                            buffer_index.Tab[index] = list_index[b*adr + index];
+                            //printf("nb = %d\n",buffer_index.nb);
+                        index++;
+                        } else {
+                            Write_Block_index(I,&buffer_index,adr); 
+                            adr++;
+                            printf("adr = %d num_block=%d i=%d index= %d\n",adr,get_Header_index(I,"num_block"),i,index);
+                            Read_Block_index(I,&buffer_index,adr);
+                            index = 0;
+                            buffer_index.Tab[index] = list_index[b*adr + index];
+                        }
+                    }
+                    Write_Block_index(I,&buffer_index,adr);
+
+                    cnd = i;
+                    for (i=cnd;nrec;i++){ //adding the new values
+                        if (index < b) {
+                            buffer_index.Tab[index] = list_index[b*adr + index];
+                            //printf("nb = %d\n",buffer_index.nb);
+                            index++;
+                            buffer_index.nb++;
+                        } else {
+                            Write_Block_index(I,&buffer_index,adr); 
+                            adr++;
+                            Alloc_block_index(I);
+                            printf("adr = %d num_block=%d i=%d index= %d\n",adr,get_Header_index(I,"num_block"),i,index);
+                            Read_Block_index(I,&buffer_index,adr);
+                            index = 0;
+                            buffer_index.Tab[index] = list_index[b*adr + index];
+                            buffer_index.nb = 1;
+                        }
+                    }
+                    Write_Block_index(I,&buffer_index,adr);
+                    /*q = nrec / b;
+                    r = nrec % b;
+                    while (get_Header_index(I,"num_block") != q){
+                        Alloc_block_index_1024(I);
+                        printf("1\n");
+                    }
+                    Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+                    buffer_index.nb = r;
+
+                    printf("adr = %d cnd = %d nrec=%d\n",adr, cnd, nrec);
+                    Read_Block_index(I,&buffer_index,adr);
+                    printf("adr = %d index = %d nb= %d\n",adr,index,buffer_index.nb);
+                    for (i=cnd; i<nrec; i++){
+                            //printf("adr = %d index = %d nb= %d\n",adr,index,buffer_index.nb);
+                            if (index < b) {
+                                buffer_index.Tab[index] = list_index[b*adr + index];
+                                //printf("nb = %d\n",buffer_index.nb);
+                                if (buffer_index.nb < b){
+                                    printf("d5l\n");
+                                    buffer_index.nb++;
+                                }
+                                index++;
+                            } else {
+                                Write_Block_index(I,&buffer_index,adr); 
+                                adr++;
+                                printf("adr = %d num_block=%d i=%d index= %d\n",adr,get_Header_index(I,"num_block"),i,index);
+                                Read_Block_index(I,&buffer_index,adr);
+                                if (adr == get_Header_index(I,"num_block")) { // if a problem happens maybe it is here
+                                    buffer.nb = r;
+                                }
+
+                                index = 0;
+                                buffer_index.Tab[index] = list_index[b*adr + index];
+                            }
+                    }
+                    Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));*/
+
+                    set_Header_index(I,"num_ins",nrec);
+                    set_Header_lnof(F,"nrec",nrec);
+                    break;
+
+            }  
+    }
+}
+
 int main(){
     srand(time(NULL));
     fichier_lnof *F;
@@ -651,6 +905,7 @@ int main(){
     int i,j=0,N,r,*list,cpt = 1;
     fichier_tof_index *I,*I2;
     enreg_index *list_index = (enreg_index*)malloc(sizeof(enreg_index));
+    enreg e;
     block_index buffer_index;
 
     //* writing the blocks
@@ -670,12 +925,51 @@ int main(){
         }
 
         load_index(I,list_index);
-        r = rand() % (get_Header_index(I,"num_ins") + 1);
+        /*r = rand() % (get_Header_index(I,"num_ins") + 1);
 
         for (i=r;i<r+10;i++){
             printf("i=%d | key= %d block= %d position= %d\n\n",i,list_index[i].key,list_index[i].adr_block,list_index[i].position);
         }
-        printf("looking the list from i=%d\n",r);
+        printf("looking the list from i=%d\n",r);*/
+        printf(" before the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
+        printf("nrec in the file= %d nrec in the index= %d\n",get_Header_lnof(F,"nrec"),get_Header_index(I,"num_ins"));
+        printf("looking in the last block in the file:\n");
+
+        Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+        r = buffer.nb - 6;
+        printf("last= %d\n",get_Header_lnof(F,"Lastblk"));
+
+        for (i=r;i<buffer.nb;i++){
+            printf("i= %d id= %d\n\n",i,buffer.Tab[i].Document_id);
+        }
+        printf("nb= %d,i=%d\n",buffer.nb,i);
+
+        Add(F,I,list_index);
+        
+        printf("\n after the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
+        printf("nrec in the file= %d nrec in the index= %d\n",get_Header_lnof(F,"nrec"),get_Header_index(I,"num_ins"));
+        printf("looking in the last block in the file:\n");
+
+        Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+        r=max(buffer.nb-6,0);
+        
+        printf("r= %d nb=%d\n",r,buffer.nb);
+        for (i=r;i<buffer.nb;i++){
+            N = buffer.Tab[i].Document_id;
+            printf("%d %s, %s, %s, %s, %d %d \n\n",N, buffer.Tab[i].Title, buffer.Tab[i].Author, buffer.Tab[i].Type, buffer.Tab[i].Domaine, buffer.Tab[i].Pub_year, buffer.Tab[i].Available_qty);
+        }
+        printf("nb= %d,i=%d\n",buffer.nb,i);
+
+        printf("enter the number of records:\n");
+        scanf("%d",&N);
+
+        Search_by_id(I,N,&found,&i,&j);
+        if (found){
+            Read_Block_lnof(F,&buffer,i);
+            printf(" it was found in block %d position %d and value %d\n",i,j,buffer.Tab[j].Document_id);
+        } else{
+            printf("it was not found\n");
+        }
 
         close_index(I);
         close_lnof(F);

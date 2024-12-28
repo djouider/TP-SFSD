@@ -457,20 +457,20 @@ int main(){
     fichier_tof_index *I;
     block_index buffer_index;
 
-    printf("enter the number of records:\n");
-    scanf("%d",&N);
+    /*printf("enter the number of records:\n");
+    scanf("%d",&N);*/
 
     //* writing the blocks
 
-    open_lnof(&F,"test1",'n');
+    open_lnof(&F,"test2",'n');
     
     if (F->f != NULL ){
         //* creating the index 
-            open_index(&I,"index_test1",'n');
-        bulk_load_lof(F,I,N);
+            open_index(&I,"index_test2",'n');
+        bulk_load_lof(F,I,5000);
         
         
-        printf("num_blocks=%d\n",get_Header_index(I,"num_block"));
+        /*printf("num_blocks=%d\n",get_Header_index(I,"num_block"));
         //* looking through the index
         r = rand() % (get_Header_index(I,"num_block") + 1);
         Read_Block_index(I,&buffer_index,r);
@@ -491,7 +491,7 @@ int main(){
         }
 
         printf("reading block = %d\n",r);
-        printf("link=%d nb=%d num_block=%d\n",buffer.link,buffer.nb,get_Header_lnof(F,"Lastblk"));
+        printf("link=%d nb=%d num_block=%d\n",buffer.link,buffer.nb,get_Header_lnof(F,"Lastblk"));*/
 
         close_index(I);
         close_lnof(F);
