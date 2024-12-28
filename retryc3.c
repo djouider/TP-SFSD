@@ -170,10 +170,17 @@ void open_index(fichier_tof_index **F,char *filename,char mode){
 void close_index( fichier_tof_index *F )
 {
    // saving header part in secondary memory (at the begining of the stream F->f)
+   printf("1\n");
    rewind(F->f);
+   printf("1\n");
    fwrite( &F->h, sizeof(header_index), 1, F->f );
+   printf("1\n");
+   fflush(F->f);
+   printf("1\n");
    fclose(F->f);
+   printf("1\n");
    printf("\n--index file closed succesfuly\n\n");
+   printf("1\n");
    free( F );
 }
 
@@ -463,7 +470,7 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
 }
 
 void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *position){
-    int m,inf = 1,sup = buff.nb;
+    int m,inf = 0,sup = buff.nb;
     *found = false;
 
     while(!(*found )&& (inf <= sup)){
@@ -484,7 +491,7 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
 }
 
 void Recherche_dicho_list(enreg_index *list_index,int len,int key,bool *found,int *block,int *position){
-    int m,inf = 1,sup =len;
+    int m,inf = 0,sup =len;
     *found = false;
 
     while(!(*found )&& (inf <= sup)){
@@ -510,7 +517,7 @@ bool search_list(enreg_index *list_index,int len,int key,int *position){
     while((!found) && (inf <= sup)){
         m = (inf + sup) / 2;
         if ( list_index[m].key == key ){
-            printf("%d was found\n",key);
+            //printf("%d was found\n",key);
             found = true;
             *position = m;
         } else {
@@ -538,9 +545,9 @@ void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *posi
             m = (inf_b + sup_b)/2;
 
             Read_Block_index(I,&buff,m);
-
-            if (key > buff.Tab[1].key && key < buff.Tab[buff.nb - 1].key){
-                Recherche_dicho_bufer(buff,key,found,block,position);
+            printf("nb in block index= %d is %d 1=%d and l=%d\n",m,buff.nb,buff.Tab[0].key,buff.Tab[buff.nb - 1].key);
+            if (key >= buff.Tab[0].key && key <= buff.Tab[buff.nb - 1].key){
+                Recherche_dicho_bufer(buff,key,found,block,position);//989206  989206  971391
                 printf(" bloc in index_file=%d\n",m);
                 stop = true;
             } else {
@@ -696,7 +703,7 @@ enreg_index *resize_list_index (enreg_index *list,int len){
     enreg_index *newlist = realloc(list,len * sizeof(enreg_index));
     
     if( newlist == NULL) {
-        printf("ERROE, Memory allocation failed\n");
+        fprintf(stderr, "ERROE, Memory allocation failed in resize_list_index\"%s\"\n");
         return NULL;
     }
 
@@ -785,6 +792,7 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
                         } else {
                             Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                             Alloc_block_lnof(F);
+                            adr++;
                             Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
                             buffer.nb = 1;
                             buffer.Tab[0] = document;
@@ -856,7 +864,7 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
                     }
                     printf("second adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
                     Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-                    printf("key = %d\n",buffer_index.Tab[0]);
+                    printf("last block in the index file= %d\n",buffer_index.Tab[0]);
                     /*q = nrec / b;
                     r = nrec % b;
                     while (get_Header_index(I,"num_block") != q){
@@ -970,24 +978,31 @@ int main(){
         }
         printf("nb= %d,i=%d\n",buffer.nb,i);
 
-        printf("enter the number of records:\n");
+        printf("\nenter the number of records:\n");
         scanf("%d",&N);
+        do {
 
-        Search_by_id(I,N,&found,&i,&j);
-        if (found){
-            Read_Block_lnof(F,&buffer,i);
-            printf(" it was found in block %d position %d and value %d\n",i,j,buffer.Tab[j].Document_id);
-        } else{
-            printf("it was not found\n");
-        }
+            Search_by_id(I,N,&found,&i,&j);
+            printf("\nsearch id\n");
+            if (found){
+                Read_Block_lnof(F,&buffer,i);
+                printf(" it was found in block %d position %d and value %d\n",i,j,buffer.Tab[j].Document_id);
+            } else{
+                printf("it was not found\n");
+            }
 
-        printf("searching in the list\n");
-        if (search_list(list_index,get_Header_index(I,"num_ins"),N,&j)){
-                        printf("%d was found in position %d\n",N,j);
-                    } else {
-                        printf("%d was not found in the list\n",N);
-                    }
+            printf("\nsearching in the list + getheader_index=%d\n",get_Header_index(I,"num_ins"));
+            if (search_list(list_index,get_Header_index(I,"num_ins"),N,&j)){
+                            printf("%d was found in position %d wiht block= %d and position= %d\n",N,j,list_index[j].adr_block,list_index[j].position);
+                        } else {
+                            printf("%d was not found in the list\n",N);
+                        }
+            printf("\nenter the number of records:\n");
+            scanf("%d",&N);
+        } while(N != 0);
+        
         close_index(I);
+        printf("1\n");
         close_lnof(F);
     }
 }
