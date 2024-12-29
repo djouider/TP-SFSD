@@ -708,6 +708,86 @@ enreg_index *resize_list_index (enreg_index *list,int len){
     return newlist;
 }
 
+void fill_document_manually(enreg *e,enreg_index *list_index,int len){
+    int choice,id,i,j;
+    bool found;
+
+            //* generating new id 
+            do {
+                id = 110000 + (rand() * rand()) % (880001);
+                Recherche_dicho_list(list_index,len,id,&found,&i,&j); //? maybe we can do search_list
+            } while (found);
+            (*e).Document_id = id;
+            printf("the id generated for the new document is :%d\n\n",id);
+            
+            //* title
+            printf("\neneter the new value for the title\ndo you want to enter it: 1.manually or 2.generate randomly\nenter 1 or 2 to chose\n");
+            scanf("%d",&choice); 
+            switch (choice){
+            case 1:
+                scanf("%s",&(*e).Title);
+                while (strlen((*e).Title) < 50 || strlen((*e).Title) > 70 ){
+                        printf("the length of the new title is out of range, please try again\n");
+                        scanf("%s",&(*e).Title);
+                }
+                break;
+            case 2:
+                generate_random_title((*e).Title);
+                printf("the title generated is %s\n",(*e).Title);
+                break;
+                
+            default:
+                break;
+            }
+                
+            //* author 
+            printf("\neneter the new value for the author\ndo you want to enter it: 1.manually or 2.generate randomly\nenter 1 or 2 to chose\n");
+            scanf("%d",&choice); 
+            switch (choice){
+                case 1:
+                    scanf("%s",&(*e).Author);
+                    while (strlen((*e).Author) < 4 || strlen((*e).Author) > 30 ){
+                        printf("the length of the new author is out of range, please try again\n");
+                        scanf("%s",&(*e).Author);
+                    }
+                    break;
+                case 2:
+                    generate_random_author((*e).Author);
+                    printf("the author generated is %s\n\n",(*e).Author);
+                    break;
+                
+                default:
+                    break;
+            }
+                
+            //* type
+                generate_type((*e).Type);
+
+
+            //* domaine
+                generate_domaine((*e).Domaine);
+
+            //* pub year
+                printf("\neneter the new value for pub year\n");
+                scanf("%d",&(*e).Pub_year);
+                while ((*e).Pub_year > 2024 || (*e).Pub_year < 1970)
+                {
+                    printf("pub year must by between 1970 and 2024\n");
+                    scanf("%d",&(*e).Pub_year);
+                }
+                
+
+            //* qty
+                printf("eneter the new value for available quantity\n");
+                scanf("%d",&(*e).Available_qty);
+                while ((*e).Available_qty > 10 || (*e).Available_qty < 0)
+                {
+                    printf("the available quantity msut be postive and less than 10\n");
+                    scanf("%d",&(*e).Available_qty);
+                }               
+}
+    
+
 void fill_document_random(enreg *e,enreg_index *list_index,int len){
     char titre[71];
     char author[31];
@@ -760,6 +840,7 @@ void Read_record(enreg *e,enreg_index *list_index,int len) {
 
 void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
     int num,choice,i,cpt=0,nrec=get_Header_lnof(F,"nrec"),adr = get_Header_lnof(F,"Lastblk"),min=990001,index,j,cnd,q,r;
+    char respond[15];
     enreg document;
     block_lof buffer;
     block_index buffer_index;
@@ -770,19 +851,110 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
     if (num > 0 ){
         printf("how do you want to generate them ?\n1. manually\n2. automaticlly\n");
             scanf("%d",&choice);
+
+            while (choice == 1 && num > 5) {
+                printf("the number to insert is a little bit long do you want to enter the document manually (yes or no)?\n");
+                scanf("%s",respond);
+            }
+            
+            if (strcmp(respond,"no") == 0){
+                choice = 2;
+            }
+
+            //printf("before list_index\n");
+            list_index = resize_list_index(list_index,nrec+num);
+            Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+
             switch (choice){
                 case 1: //manually
+                    //* filling the lnof file
+                    for (i=0;i<num;i++){
+                        printf("\nfilling the infos of document number %d\n----------------------------------\n",i+1);
+                        fill_document_manually(&document,list_index,nrec); //? we will change this 
+                        if ( buffer.nb < b){
+                            buffer.Tab[buffer.nb] = document;
+                            buffer.nb++;
+                        } else {
+                            Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+                            Alloc_block_lnof(F);
+                            adr++;
+                            Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+                            buffer.nb = 1;
+                            buffer.Tab[0] = document;
+                        }
+                        Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
 
+                        //* filling the list
+                        list_index[nrec].key = document.Document_id;
+                        //printf("document_id= %d\n",document.Document_id);
+                        if (document.Document_id < min) {
+                            min = document.Document_id;
+                        }
+                        list_index[nrec].adr_block =  adr;
+                        list_index[nrec].position = buffer.nb-1;
+                        nrec++;
+                    }
+
+                    //* sorting the list
+                    sort_list(list_index,nrec);
+            
+                    //* filling the index file 
+                    if (! search_list(list_index,nrec,min,&index)){
+                        printf("%d was not found in the list\n",min); //* to check if the search was correct
+                    } 
+                    adr = index / b; 
+                    cnd = index; //b * adr
+                    j = index % b;
+
+                    Read_Block_index(I,&buffer_index,adr);
+                    for (i=cnd;i<get_Header_index(I,"num_ins");i++){ 
+                        if (j < b) {
+                            buffer_index.Tab[j] = list_index[index];
+                            //printf("nb = %d\n",buffer_index.nb);
+                            j++;
+                            index++;
+                        } else {
+                            Write_Block_index(I,&buffer_index,adr); 
+                            adr++;
+                            printf("first adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
+                            Read_Block_index(I,&buffer_index,adr);
+                            buffer_index.Tab[0] = list_index[index];
+                            j=1;
+                            index++;
+                        }
+                    }
+                    Write_Block_index(I,&buffer_index,adr);
+
+                    cnd = i;
+                    for (i=cnd;i<nrec;i++){ //adding the new values
+                        if (j < b) {
+                            buffer_index.Tab[j] = list_index[index];
+                            //printf("nb = %d\n",buffer_index.nb);
+                            index++;
+                            j++;
+                            buffer_index.nb++;
+                        } else {
+                            Write_Block_index(I,&buffer_index,adr); 
+                            adr++;
+                            Alloc_block_index(I);
+                            Read_Block_index(I,&buffer_index,adr);
+                            buffer_index.Tab[0] = list_index[index];
+                            j=1;
+                            index++;
+                            buffer_index.nb = 1;
+                        }
+                    }
+                    Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+
+                    set_Header_index(I,"num_ins",nrec);
+                    set_Header_lnof(F,"nrec",nrec);
                     break;
 
                 case 2: //autimatticlly
-                    //printf("before list_index\n");
-                    list_index = resize_list_index(list_index,nrec+num);
-                    Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
 
                     //* filling the lnof file
                     for (i=0;i<num;i++){
-                        fill_document_random(&document,list_index,nrec);
+                        fill_document_random(&document,list_index,nrec); //? we will change this 
                         if ( buffer.nb < b){
                             buffer.Tab[buffer.nb] = document;
                             buffer.nb++;
