@@ -137,6 +137,7 @@ typedef struct type_hdr_index{
 typedef struct index_file {
     FILE *f;
     header_index h;
+    char name[60];
 } fichier_tof_index;
 
 void open_index(fichier_tof_index **F,char *filename,char mode){
@@ -164,7 +165,9 @@ void open_index(fichier_tof_index **F,char *filename,char mode){
         buffer.nb =0;
         fwrite(&buffer,sizeof(block_index),1,(*F)->f); 
     }
-    printf("\n--index file opened succesuly\n\n");
+
+    strcpy((*F)->name,filename);
+    printf("\n--index file %s opened succesuly\n\n",(*F)->name);
 }
 
 void close_index( fichier_tof_index *F )

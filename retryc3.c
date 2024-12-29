@@ -137,6 +137,7 @@ typedef struct type_hdr_index{
 typedef struct index_file {
     FILE *f;
     header_index h;
+    char name[60];
 } fichier_tof_index;
 
 void open_index(fichier_tof_index **F,char *filename,char mode){
@@ -164,23 +165,19 @@ void open_index(fichier_tof_index **F,char *filename,char mode){
         buffer.nb =0;
         fwrite(&buffer,sizeof(block_index),1,(*F)->f); 
     }
+
+    strcpy((*F)->name,filename);
     printf("\n--index file opened succesuly\n\n");
 }
 
 void close_index( fichier_tof_index *F )
 {
    // saving header part in secondary memory (at the begining of the stream F->f)
-   printf("1\n");
    rewind(F->f);
-   printf("1\n");
    fwrite( &F->h, sizeof(header_index), 1, F->f );
-   printf("1\n");
-   fflush(F->f);
-   printf("1\n");
+   //fflush(F->f);
    fclose(F->f);
-   printf("1\n");
-   printf("\n--index file closed succesfuly\n\n");
-   printf("1\n");
+   printf("\n--index file closed succesfuly\n\n");  
    free( F );
 }
 
@@ -516,6 +513,7 @@ bool search_list(enreg_index *list_index,int len,int key,int *position){
 
     while((!found) && (inf <= sup)){
         m = (inf + sup) / 2;
+        //printf("inf = %d sup = %d m =%d\n",inf,sup,m);
         if ( list_index[m].key == key ){
             //printf("%d was found\n",key);
             found = true;
@@ -772,14 +770,13 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
     if (num > 0 ){
         printf("how do you want to generate them ?\n1. manually\n2. automaticlly\n");
             scanf("%d",&choice);
-            printf("\nenterign choice 2\n\n");
             switch (choice){
                 case 1: //manually
 
                     break;
 
                 case 2: //autimatticlly
-                    printf("before list_index\n");
+                    //printf("before list_index\n");
                     list_index = resize_list_index(list_index,nrec+num);
                     Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
 
@@ -812,25 +809,22 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
 
                     //* sorting the list
                     sort_list(list_index,nrec);
-
+            
                     //* filling the index file 
-                    if (search_list(list_index,nrec,min,&index)){
-                        printf("%d was found in position %d\n",min,index);
-                    } else {
-                        printf("%d was not found in the list\n",min);
-                    }
-
+                    if (! search_list(list_index,nrec,min,&index)){
+                        printf("%d was not found in the list\n",min); //* to check if the search was correct
+                    } 
                     adr = index / b; 
                     cnd = index; //b * adr
                     j = index % b;
 
                     Read_Block_index(I,&buffer_index,adr);
-                    for (i=cnd;i<get_Header_index(I,"num_ins");i++){
+                    for (i=cnd;i<get_Header_index(I,"num_ins");i++){ //? i = index
                         if (j < b) {
                             buffer_index.Tab[j] = list_index[index];
                             //printf("nb = %d\n",buffer_index.nb);
                             j++;
-                        index++;
+                            index++;
                         } else {
                             Write_Block_index(I,&buffer_index,adr); 
                             adr++;
@@ -855,57 +849,18 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
                             Write_Block_index(I,&buffer_index,adr); 
                             adr++;
                             Alloc_block_index(I);
-                            printf("second adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
+                            Read_Block_index(I,&buffer_index,adr);
                             buffer_index.Tab[0] = list_index[index];
                             j=1;
                             index++;
                             buffer_index.nb = 1;
                         }
                     }
-                    printf("second adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,index,j);
                     Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-                    printf("last block in the index file= %d\n",buffer_index.Tab[0]);
-                    /*q = nrec / b;
-                    r = nrec % b;
-                    while (get_Header_index(I,"num_block") != q){
-                        Alloc_block_index_1024(I);
-                        printf("1\n");
-                    }
-                    Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-                    buffer_index.nb = r;
-
-                    printf("adr = %d cnd = %d nrec=%d\n",adr, cnd, nrec);
-                    Read_Block_index(I,&buffer_index,adr);
-                    printf("adr = %d index = %d nb= %d\n",adr,index,buffer_index.nb);
-                    for (i=cnd; i<nrec; i++){
-                            //printf("adr = %d index = %d nb= %d\n",adr,index,buffer_index.nb);
-                            if (index < b) {
-                                buffer_index.Tab[index] = list_index[b*adr + index];
-                                //printf("nb = %d\n",buffer_index.nb);
-                                if (buffer_index.nb < b){
-                                    printf("d5l\n");
-                                    buffer_index.nb++;
-                                }
-                                index++;
-                            } else {
-                                Write_Block_index(I,&buffer_index,adr); 
-                                adr++;
-                                printf("adr = %d num_block=%d i=%d index= %d\n",adr,get_Header_index(I,"num_block"),i,index);
-                                Read_Block_index(I,&buffer_index,adr);
-                                if (adr == get_Header_index(I,"num_block")) { // if a problem happens maybe it is here
-                                    buffer.nb = r;
-                                }
-
-                                index = 0;
-                                buffer_index.Tab[index] = list_index[b*adr + index];
-                            }
-                    }
-                    Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));*/
 
                     set_Header_index(I,"num_ins",nrec);
                     set_Header_lnof(F,"nrec",nrec);
                     break;
-
             }  
     }
 }
@@ -946,7 +901,7 @@ int main(){
             printf("i=%d | key= %d block= %d position= %d\n\n",i,list_index[i].key,list_index[i].adr_block,list_index[i].position);
         }
         printf("looking the list from i=%d\n",r);*/
-        printf(" before the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
+        printf("\n before the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
         printf("nrec in the file= %d nrec in the index= %d\n",get_Header_lnof(F,"nrec"),get_Header_index(I,"num_ins"));
         printf("looking in the last block in the file:\n");
 
@@ -961,10 +916,11 @@ int main(){
         printf("nb= %d,i=%d\n",buffer.nb,i);
 
         Add(F,I,list_index);
+        load_index(I,list_index);
         
         printf("\n after the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
         printf("nrec in the file= %d nrec in the index= %d\n",get_Header_lnof(F,"nrec"),get_Header_index(I,"num_ins"));
-        printf("looking in the last block in the file:\n");
+        printf("looking in the last block in the file:\n\n");
 
         Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
         Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
@@ -973,15 +929,16 @@ int main(){
         printf("r= %d nb=%d\n",r,buffer.nb);
         for (i=r;i<buffer.nb;i++){
             N = buffer.Tab[i].Document_id;
-            printf("%d %s, %s, %s, %s, %d %d \n",N, buffer.Tab[i].Title, buffer.Tab[i].Author, buffer.Tab[i].Type, buffer.Tab[i].Domaine, buffer.Tab[i].Pub_year, buffer.Tab[i].Available_qty);
+            printf("i= %d id= %d pub_year=%d qty=%d\n",i,buffer.Tab[i].Document_id,buffer.Tab[i].Pub_year,buffer.Tab[i].Available_qty);
             printf("key in index position %d is %d i=%d j=%d\n\n",i,buffer_index.Tab[i].key,buffer_index.Tab[i].adr_block,buffer_index.Tab[i].position);
         }
         printf("nb= %d,i=%d\n",buffer.nb,i);
 
+    
         printf("\nenter the number of records:\n");
         scanf("%d",&N);
         do {
-
+            
             Search_by_id(I,N,&found,&i,&j);
             printf("\nsearch id\n");
             if (found){
@@ -1001,8 +958,7 @@ int main(){
             scanf("%d",&N);
         } while(N != 0);
         
-        close_index(I);
-        printf("1\n");
+        close_index(I);    
         close_lnof(F);
     }
 }
