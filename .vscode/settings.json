@@ -1,6 +1,14 @@
 {
     "files.associations": {
-        "retry.C": "cpp"
+        "retry.C": "cpp",
+        "array": "c",
+        "*.tcc": "c",
+        "memory": "c",
+        "functional": "c",
+        "istream": "c",
+        "tuple": "c",
+        "utility": "c",
+        "test": "cpp"
     },
     "workbench.editor.enablePreview": true
 }
