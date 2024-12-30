@@ -470,7 +470,7 @@ int main(){
     if (F->f != NULL ){
         //* creating the index 
             open_index(&I,"index_test2",'n');
-        bulk_load_lof(F,I,5000);
+        bulk_load_lof(F,I,5122);
         
         
         /*printf("num_blocks=%d\n",get_Header_index(I,"num_block"));
