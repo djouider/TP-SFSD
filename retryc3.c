@@ -487,6 +487,29 @@ void sort_list(enreg_index *list_index,int len){
     }
 }
 
+void sort_list_tof(enreg_tof *list,int len){
+    int i,j;
+    bool swap;
+    enreg_tof temp;
+
+    for(i=0;i<len-1;i++){
+    swap = false;
+        for (j=0;j<len-i-1;j++){
+                    
+            if (list[j].Document_id > list[j+1].Document_id){
+                temp = list[j];
+                list[j] = list[j+1];
+                list[j+1] = temp;
+                swap = true;
+            }
+
+        }
+        if (!swap){
+            break;
+        }
+    }
+}
+
 void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
     block_lof buffer;
     buffer.nb = 0;
@@ -800,6 +823,17 @@ enreg_index *resize_list_index (enreg_index *list,int len){
     
     if( newlist == NULL) {
         fprintf(stderr, "ERROE, Memory allocation failed in resize_list_index\"%s\"\n");
+        return NULL;
+    }
+
+    return newlist;
+}
+
+enreg_tof *resize_list_tof (enreg_tof *list,int len){
+    enreg_tof *newlist = realloc(list,len * sizeof(enreg_tof));
+    
+    if( newlist == NULL) {
+        fprintf(stderr, "ERROE, Memory allocation failed in resize_list_tof\"\"\n");
         return NULL;
     }
 
@@ -1232,44 +1266,53 @@ void delete(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index){ //? i
 void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T){
     block_lof buff_lof;
     block_tof buff_tof;
-    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0;
+    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0,len=1024;
+    enreg_tof *list = (enreg_tof*)malloc(len * sizeof(enreg_tof));
 
     Read_Block_lnof(F,&buff_lof,link);
-    buff_tof.nb=0;
-    Read_block_tof(T,&buff_tof,0);
     for ( i = 0; i <= get_Header_lnof(F,"Lastblk"); i++){ //Read_Block_lnof(F,&buff_lof,i); //if it doesnt work
-        Read_Block_lnof(F,&buff_lof,i); //if it doesnt work
+        Read_Block_lnof(F,&buff_lof,i); 
         for (j=0; j<buff_lof.nb; j++){
             if (strcmp(buff_lof.Tab[j].Type,"Revues et periodiques") == 0) {
-
-                if (k<b){
-                    buff_tof.Tab[k].Document_id = buff_lof.Tab[j].Document_id ; buff_tof.Tab[k].Pub_year = buff_lof.Tab[j].Pub_year; buff_tof.Tab[k].Available_qty = buff_lof.Tab[j].Available_qty;
-                    strcpy(buff_tof.Tab[k].Title, buff_lof.Tab[j].Title); strcpy(buff_tof.Tab[k].Author, buff_lof.Tab[j].Author); strcpy(buff_tof.Tab[k].Domaine, buff_lof.Tab[j].Domaine);
-                    k++;
-                    buff_tof.nb++;
-                    num++;
-                } else {
-                    printf("1\n");
-                    Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
-                    set_Header_tof(T,"num_block",get_Header_tof(T,"num_block")+1);
-                    Alloc_block_tof(T);
-                    Read_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
-                    k=0;
-                    buff_tof.Tab[k].Document_id = buff_lof.Tab[j].Document_id ; buff_tof.Tab[k].Pub_year = buff_lof.Tab[j].Pub_year; buff_tof.Tab[k].Available_qty = buff_lof.Tab[j].Available_qty;
-                    strcpy(buff_tof.Tab[k].Title, buff_lof.Tab[j].Title); strcpy(buff_tof.Tab[k].Author, buff_lof.Tab[j].Author); strcpy(buff_tof.Tab[k].Domaine, buff_lof.Tab[j].Domaine);
-                    k=1;
-                    buff_tof.nb=1;
-                    num++;
+                if (k >= len){
+                    len++;
+                    list = resize_list_tof(list,len);
                 }
+                list[k].Document_id = buff_lof.Tab[j].Document_id ; list[k].Pub_year = buff_lof.Tab[j].Pub_year; list[k].Available_qty = buff_lof.Tab[j].Available_qty;
+                strcpy(list[k].Title, buff_lof.Tab[j].Title); strcpy(list[k].Author, buff_lof.Tab[j].Author); strcpy(list[k].Domaine, buff_lof.Tab[j].Domaine);
+                k++;
+                num++;
             }
         }
-        // on passe a l'autre block de lnof
-        /*link = buff_lof.link;
-        if(link != -1){
-            printf("1\n");
-            Read_Block_lnof(F,&buff_lof,link);
-        }*/
     }
+     
+    //*sorting the list
+    sort_list_tof(list,num);
+
+    //* loading the file
+    j=0;
+    k=0;
+    Read_block_tof(T,&buff_tof,0);
+    buff_tof.nb=0;
+    for(i=0;i<num;i++){
+        if (k < b){
+            buff_tof.Tab[k].Document_id = list[j].Document_id ; buff_tof.Tab[k].Pub_year = list[j].Pub_year; buff_tof.Tab[k].Available_qty = list[j].Available_qty;
+            strcpy(buff_tof.Tab[k].Title, list[j].Title); strcpy(buff_tof.Tab[k].Author, list[j].Author); strcpy(buff_tof.Tab[k].Domaine, list[j].Domaine);
+            buff_tof.nb++;
+            k++;
+            j++;     
+        }else{
+            Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
+            Alloc_block_tof(T);
+            Read_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
+            k=0;
+            buff_tof.Tab[k].Document_id = list[j].Document_id ; buff_tof.Tab[k].Pub_year = list[j].Pub_year; buff_tof.Tab[k].Available_qty = list[j].Available_qty;
+            strcpy(buff_tof.Tab[k].Title, list[j].Title); strcpy(buff_tof.Tab[k].Author, list[j].Author); strcpy(buff_tof.Tab[k].Domaine, list[j].Domaine);
+            buff_tof.nb++;
+            k=1;
+            j++;
+        }
+    }    
     Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
     set_Header_tof(T,"nrec",num);
     
