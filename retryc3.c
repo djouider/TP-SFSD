@@ -588,7 +588,7 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N){
 }
 
 void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *position){
-    int m,inf = 0,sup = buff.nb;
+    int m,inf = 0,sup = buff.nb; //! sup = buff.nb - 1
     *found = false;
 
     while(!(*found )&& (inf <= sup)){
@@ -600,6 +600,26 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
             printf("key = %d  %d %d position in list_inedx = %d",key,*block,*position,m);
         } else {
             if (buff.Tab[m].key > key){
+                sup = m - 1 ;
+            } else {
+                inf = m + 1;
+            }
+        }
+    }
+}
+
+void Recherche_dicho_bufer_tof(block_tof buff,int key,bool *found,int *position){
+    int m,inf = 0,sup = buff.nb-1; //! sup 
+    *found = false;
+
+    while(!(*found )&& (inf <= sup)){
+        m = (inf + sup) / 2;
+        if ( buff.Tab[m].Document_id == key ){
+            *found = true;
+            printf("key = %d  %d position in = %d",key,*position,m);
+            *position = m;
+        } else {
+            if (buff.Tab[m].Document_id > key){
                 sup = m - 1 ;
             } else {
                 inf = m + 1;
@@ -671,6 +691,37 @@ void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *posi
                 stop = true;
             } else {
                 if (key < buff.Tab[1].key){
+                    sup_b = m-1;
+                } else {
+                    inf_b = m +1 ;
+                }
+            }
+        }
+    }
+}
+
+void Search_by_id_tof (fichier_tof *T,int key,bool *found,int *block,int *position){
+    *found = false;
+    if (key < 110000 || key > 990000){
+        printf("\n\nkey out of range\n\n");
+
+    } else {
+        int m,inf_b = 0,sup_b = get_Header_tof(T,"num_block");
+        block_tof buff;
+        bool stop=false;
+
+        while(!stop && (inf_b <= sup_b)){
+            m = (inf_b + sup_b)/2;
+
+            Read_block_tof(T,&buff,m);
+            printf("nb in block = %d is %d 1=%d and l=%d\n",m,buff.nb,buff.Tab[0].Document_id,buff.Tab[buff.nb - 1].Document_id);
+            if (key >= buff.Tab[0].Document_id && key <= buff.Tab[buff.nb - 1].Document_id){
+                Recherche_dicho_bufer_tof(buff,key,found,position);
+                printf(" bloc in tof_file=%d\n",m);
+                *block = m;
+                stop = true;
+            } else {
+                if (key < buff.Tab[0].Document_id){
                     sup_b = m-1;
                 } else {
                     inf_b = m +1 ;
@@ -1172,95 +1223,100 @@ void Add(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index) {
 void delete(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index){ //? in this i am not using ndel in the meantime (propably i will take rid of it) 
     int id,i,j,pos,nrec = get_Header_index(I,"num_ins"),adr,cnd;            //? it maybe needs some optimisation
     bool same,last;
+    char choice[20];
     block_lof buffer;
     block_index buffer_index;
     enreg e;
     enreg_index temp;
+    do {
+        printf("enter the id of the document you want to delete\n");
+        scanf("%d",&id);
 
-    printf("enter the id of the document you want to delete\n");
-    scanf("%d",&id);
+        if (search_list(list_index,nrec,id,&pos)){
+            printf("id %d was found in position %d\n",id,pos);
+            temp = list_index[pos];
 
-    if (search_list(list_index,nrec,id,&pos)){
-        printf("id %d was found in position %d\n",id,pos);
-        temp = list_index[pos];
+            //* replace its value in the lnof file
+            Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+            Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+            e = buffer.Tab[buffer.nb-1]; 
+            buffer.nb--;
+            buffer_index.nb--;
+            same = (list_index[pos].key == e.Document_id); // if we are deleting the last elememt = maybe tsleh fl 2eme cas
+            last = (same && buffer.nb ==0);
 
-        //* replace its value in the lnof file
-        Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-        Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-        e = buffer.Tab[buffer.nb-1]; 
-        buffer.nb--;
-        buffer_index.nb--;
-        same = (list_index[pos].key == e.Document_id); // if we are deleting the last elememt = maybe tsleh fl 2eme cas
-        last = (same && buffer.nb ==0);
+            Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+            Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+            if (buffer.nb == 0) { // the block will be deleted
+                //update in both the lnof and the index file
+                set_Header_index(I,"num_block",get_Header_index(I,"num_block")-1);
+                set_Header_lnof(F,"Lastblk",get_Header_lnof(F,"Lastblk")-1);
 
-        Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-        Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-        if (buffer.nb == 0) { // the block will be deleted
-            //update in both the lnof and the index file
-            set_Header_index(I,"num_block",get_Header_index(I,"num_block")-1);
-            set_Header_lnof(F,"Lastblk",get_Header_lnof(F,"Lastblk")-1);
+                //? take in mind that it may delete the last block 
+            }
+            if (!same ){
+            Read_Block_lnof(F,&buffer,list_index[pos].adr_block);
+            //printf("berfor %d \n",buffer.Tab[list_index[pos].position].Document_id);
+            buffer.Tab[list_index[pos].position] = e;
+            Write_Block_lnof(F,&buffer,list_index[pos].adr_block);
+            //printf("after %d \n",buffer.Tab[list_index[pos].position].Document_id);
+            //printf("\n1\n");
+            }
 
-            //? take in mind that it may delete the last block 
-        }
-        if (!same ){
-        Read_Block_lnof(F,&buffer,list_index[pos].adr_block);
-        //printf("berfor %d \n",buffer.Tab[list_index[pos].position].Document_id);
-        buffer.Tab[list_index[pos].position] = e;
-        Write_Block_lnof(F,&buffer,list_index[pos].adr_block);
-        //printf("after %d \n",buffer.Tab[list_index[pos].position].Document_id);
-        //printf("\n1\n");
-        }
+            //? nrec--
+            for (i=pos;i<nrec-1;i++){
+                list_index[i] = list_index[i+1];
+            }
+            // update the list_index for the new value it will always find it
+            if (!last && !same){
+                if (search_list(list_index,nrec-1,e.Document_id,&j)){
+                    printf("id %d was found in position %d\n",e.Document_id,j);
+                } else { printf("ther was a problem");}
 
-        //? nrec--
-        for (i=pos;i<nrec-1;i++){
-            list_index[i] = list_index[i+1];
-        }
-        // update the list_index for the new value it will always find it
-        if (!last && !same){
-            if (search_list(list_index,nrec-1,e.Document_id,&j)){
-                printf("id %d was found in position %d\n",e.Document_id,j);
-            } else { printf("ther was a problem");}
+                printf("before j=%d id=%d adr=%d pos=%d\n",j,list_index[j].key,list_index[j].adr_block,list_index[j].position);
+                list_index[j].adr_block = temp.adr_block; //? temp => list_index[pos]
+                list_index[j].position = temp.position;
+                id=j;
+                printf("after j=%d id=%d adr=%d pos=%d\n",j,list_index[j].key,list_index[j].adr_block,list_index[j].position);
+            }
+        
+            set_Header_index(I,"num_ins",nrec-1);
+            set_Header_lnof(F,"nrec",nrec-1);
 
-            printf("before j=%d id=%d adr=%d pos=%d\n",j,list_index[j].key,list_index[j].adr_block,list_index[j].position);
-            list_index[j].adr_block = temp.adr_block; //? temp => list_index[pos]
-            list_index[j].position = temp.position;
-            id=j;
-            printf("after j=%d id=%d adr=%d pos=%d\n",j,list_index[j].key,list_index[j].adr_block,list_index[j].position);
-        }
-    
-        set_Header_index(I,"num_ins",nrec-1);
-        set_Header_lnof(F,"nrec",nrec-1);
+            //update the index file
+            adr = pos / b; 
+            cnd = pos; //b * adr
+            j = pos % b;
 
-        //update the index file
-        adr = pos / b; 
-        cnd = pos; //b * adr
-        j = pos % b;
-
-        printf("j=%d id=%d adr=%d\n",j,id,adr);
-        Read_Block_index(I,&buffer_index,adr);
-            for (i=cnd;i<nrec-1;i++){ //? i = index
-                        if (j < b) {
-                            buffer_index.Tab[j] = list_index[pos];
-                            if (pos == id) {
-                                printf("found j=%d id=%d adr=%d pos=%d\n",j,buffer_index.Tab[j].key,buffer_index.Tab[j].adr_block,buffer_index.Tab[j].position);
+            printf("j=%d id=%d adr=%d\n",j,id,adr);
+            Read_Block_index(I,&buffer_index,adr);
+                for (i=cnd;i<nrec-1;i++){ //? i = index
+                            if (j < b) {
+                                buffer_index.Tab[j] = list_index[pos];
+                                if (pos == id) {
+                                    printf("found j=%d id=%d adr=%d pos=%d\n",j,buffer_index.Tab[j].key,buffer_index.Tab[j].adr_block,buffer_index.Tab[j].position);
+                                }
+                                //printf("nb = %d\n",buffer_index.nb);
+                                j++;
+                                pos++;
+                            } else {
+                                Write_Block_index(I,&buffer_index,adr); 
+                                adr++;
+                                //printf("first adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,pos,j);
+                                Read_Block_index(I,&buffer_index,adr);
+                                buffer_index.Tab[0] = list_index[pos];
+                                j=1;
+                                pos++;
                             }
-                            //printf("nb = %d\n",buffer_index.nb);
-                            j++;
-                            pos++;
-                        } else {
-                            Write_Block_index(I,&buffer_index,adr); 
-                            adr++;
-                            //printf("first adr = %d num_block=%d i=%d index= %d j= %d\n",adr,get_Header_index(I,"num_block"),i,pos,j);
-                            Read_Block_index(I,&buffer_index,adr);
-                            buffer_index.Tab[0] = list_index[pos];
-                            j=1;
-                            pos++;
                         }
-                    }
-                    Write_Block_index(I,&buffer_index,adr);
-    } else {
-        printf("the id was not found in the list_index\n");
-    }
+                        Write_Block_index(I,&buffer_index,adr);
+        } else {
+            printf("the id was not found in the list_index\n");
+        }
+
+        printf("do you want to delete another file ?\n(yes or no)\n");
+        scanf("%s",choice);
+    } while (strcmp(choice,"yes") == 0);
 }
 
 void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T){
@@ -1358,9 +1414,17 @@ int main(){
         r = rand() % (buffer_tof.nb + 1);
         printf("\nr=%d nb=%d\n",r,buffer_tof.nb);
         for (i=r;i<r+10;i++){
-                printf("%d %s, %s, %s, %d %d \n\n",buffer_tof.Tab[i].Document_id, buffer_tof.Tab[i].Title, buffer_tof.Tab[i].Author, buffer_tof.Tab[i].Domaine, buffer_tof.Tab[i].Pub_year, buffer_tof.Tab[0].Available_qty);
+                printf("i=%d %d %s, %s, %s, %d %d \n\n",i,buffer_tof.Tab[i].Document_id, buffer_tof.Tab[i].Title, buffer_tof.Tab[i].Author, buffer_tof.Tab[i].Domaine, buffer_tof.Tab[i].Pub_year, buffer_tof.Tab[0].Available_qty);
         }
-
+        printf("what id the id you are lookinh for ?\n");
+        scanf("%d",&N);
+        Search_by_id_tof(T,N,&found,&j,&i);
+        if (found ){
+            Read_block_tof(T,&buffer_tof,j);
+            printf("%d %s, %s, %s, %d %d \n\n",buffer_tof.Tab[i].Document_id, buffer_tof.Tab[i].Title, buffer_tof.Tab[i].Author, buffer_tof.Tab[i].Domaine, buffer_tof.Tab[i].Pub_year, buffer_tof.Tab[0].Available_qty);
+        } else {
+            printf("id was not found in tof index\n");
+        }
         close_index(I); 
         close_tof(T);   
         close_lnof(F);
