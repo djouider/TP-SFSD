@@ -275,7 +275,7 @@ void open_tof(fichier_tof **F,char filename[], char mode){ //F->f will be pointi
         buffer.nb =0;
         fwrite(&buffer,sizeof(block_tof),1,(*F)->f);
     }
-    printf("--LnOF file opened succesfuly\n\n");
+    printf("--tOF file opened succesfuly\n\n");
 }
 
 void close_tof(fichier_tof *F){
@@ -283,7 +283,7 @@ void close_tof(fichier_tof *F){
     fwrite(&F->h, sizeof(header_tof),1,F->f);
     fclose(F->f);
     free(F);
-    printf("--LnOF file closed succesfuly\n");
+    printf("--tOF file closed succesfuly\n");
 }
 
 int get_Header_tof(fichier_tof *F,char *field){
@@ -301,13 +301,13 @@ void set_Header_tof(fichier_tof *F,char *field,int val){
 }
 
 void Read_block_tof(fichier_tof *F,block_tof *buffer,int i){
-    if (i<0 || i>get_Header_tof(F,"Lastblk") ){fprintf(stderr, "Read_block_tof : number of block does not exist: \"%d\"\n", i);; return;}
+    if (i<0 || i>get_Header_tof(F,"num_block") ){fprintf(stderr, "Read_block_tof : number of block does not exist: \"%d\"\n", i);; return;}
     fseek(F->f,sizeof(header_tof) + i*sizeof(block_tof),SEEK_SET);
     fread(buffer,sizeof(block_tof),1,F->f);
 }
 
 void Write_block_tof(fichier_tof *F,block_tof *buffer,int i){
-    if (i<0 || i>get_Header_tof(F,"Lastblk") ){fprintf(stderr, "Write_block_tof : number of block does not exist: \"%d\"\n", i);; return;}
+    if (i<0 || i>get_Header_tof(F,"num_block") ){fprintf(stderr, "Write_block_tof : number of block does not exist: \"%d\"\n", i);; return;}
     fseek(F->f,sizeof(header_tof) + i*sizeof(block_tof),SEEK_SET);
     fwrite(buffer,sizeof(block_tof),1,F->f);
     //fflush(F->f);
@@ -315,11 +315,9 @@ void Write_block_tof(fichier_tof *F,block_tof *buffer,int i){
 
 void Alloc_block_tof (fichier_tof *F){
     block_tof buf;
-    Read_block_tof(F,&buf,get_Header_tof(F,"Lastblk"));
-    Write_block_tof(F,&buf,get_Header_tof(F,"Lastblk"));
     buf.nb =0;
-    set_Header_tof(F,"Lastblk",get_Header_tof(F,"Lastblk")+1);
-    Write_block_tof(F,&buf,get_Header_tof(F,"Lastblk"));
+    set_Header_tof(F,"num_block",get_Header_tof(F,"num_block")+1);
+    Write_block_tof(F,&buf,get_Header_tof(F,"num_block"));
 }
 
 bool find_list(int *list, int len,int N){
@@ -789,7 +787,7 @@ void load_index(fichier_tof_index *I,enreg_index *list){
    
     for (i=0;i<=num;i++){
         Read_Block_index(I,&buff,i);
-        printf("\nnum = %d nb= %d",i,buff.nb);
+        printf("\nnum = %d nb= %d\n",i,buff.nb);
         for (j=0;j<buff.nb;j++){
             list[k] = buff.Tab[j];
             k++;
@@ -1195,8 +1193,7 @@ void delete(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index){ //? i
             id=j;
             printf("after j=%d id=%d adr=%d pos=%d\n",j,list_index[j].key,list_index[j].adr_block,list_index[j].position);
         }
-        
-        printf("\n2\n");
+    
         set_Header_index(I,"num_ins",nrec-1);
         set_Header_lnof(F,"nrec",nrec-1);
 
@@ -1232,6 +1229,52 @@ void delete(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index){ //? i
     }
 }
 
+void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T){
+    block_lof buff_lof;
+    block_tof buff_tof;
+    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0;
+
+    Read_Block_lnof(F,&buff_lof,link);
+    buff_tof.nb=0;
+    Read_block_tof(T,&buff_tof,0);
+    for ( i = 0; i <= get_Header_lnof(F,"Lastblk"); i++){ //Read_Block_lnof(F,&buff_lof,i); //if it doesnt work
+        Read_Block_lnof(F,&buff_lof,i); //if it doesnt work
+        for (j=0; j<buff_lof.nb; j++){
+            if (strcmp(buff_lof.Tab[j].Type,"Revues et periodiques") == 0) {
+
+                if (k<b){
+                    buff_tof.Tab[k].Document_id = buff_lof.Tab[j].Document_id ; buff_tof.Tab[k].Pub_year = buff_lof.Tab[j].Pub_year; buff_tof.Tab[k].Available_qty = buff_lof.Tab[j].Available_qty;
+                    strcpy(buff_tof.Tab[k].Title, buff_lof.Tab[j].Title); strcpy(buff_tof.Tab[k].Author, buff_lof.Tab[j].Author); strcpy(buff_tof.Tab[k].Domaine, buff_lof.Tab[j].Domaine);
+                    k++;
+                    buff_tof.nb++;
+                    num++;
+                } else {
+                    printf("1\n");
+                    Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
+                    set_Header_tof(T,"num_block",get_Header_tof(T,"num_block")+1);
+                    Alloc_block_tof(T);
+                    Read_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
+                    k=0;
+                    buff_tof.Tab[k].Document_id = buff_lof.Tab[j].Document_id ; buff_tof.Tab[k].Pub_year = buff_lof.Tab[j].Pub_year; buff_tof.Tab[k].Available_qty = buff_lof.Tab[j].Available_qty;
+                    strcpy(buff_tof.Tab[k].Title, buff_lof.Tab[j].Title); strcpy(buff_tof.Tab[k].Author, buff_lof.Tab[j].Author); strcpy(buff_tof.Tab[k].Domaine, buff_lof.Tab[j].Domaine);
+                    k=1;
+                    buff_tof.nb=1;
+                    num++;
+                }
+            }
+        }
+        // on passe a l'autre block de lnof
+        /*link = buff_lof.link;
+        if(link != -1){
+            printf("1\n");
+            Read_Block_lnof(F,&buff_lof,link);
+        }*/
+    }
+    Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
+    set_Header_tof(T,"nrec",num);
+    
+}
+
 int main(){
     srand(time(NULL));
     fichier_lnof *F;
@@ -1240,10 +1283,12 @@ int main(){
     buffer.link = -1;
     buffer.nb = 0;
     int i,j=0,N,r,*list,cpt = 1;
-    fichier_tof_index *I,*I2;
+    fichier_tof_index *I;
+    fichier_tof *T;
     enreg_index *list_index = (enreg_index*)malloc(sizeof(enreg_index));
     enreg e;
     block_index buffer_index;
+    block_tof buffer_tof;
 
     //* writing the blocks
 
@@ -1252,7 +1297,7 @@ int main(){
     if (F->f != NULL ){
         //* creating the index 
         open_index(&I,"index_test2",'e');
-        
+        open_tof(&T,"journal_magazine",'n');
         //bulk_load_lof(F,I,5000);
 
         list_index = resize_list_index(list_index,get_Header_index(I,"num_ins")); 
@@ -1260,74 +1305,21 @@ int main(){
             printf("ERROR: Memory allocation failed for list_index in main\n");
             return 0;
         }
-
         load_index(I,list_index);
-        /*r = rand() % (get_Header_index(I,"num_ins") + 1);
 
+        printf("before: num_block in the file= %d nrec= %d ndel= %d\n\n",get_Header_tof(T,"num_block"),get_Header_tof(T,"nrec"),get_Header_tof(T,"ndel"));
+        bulk_laod_revue_periodique(F,T);
+        printf("after: num_block in the file= %d nrec= %d ndel= %d\n\n",get_Header_tof(T,"num_block"),get_Header_tof(T,"nrec"),get_Header_tof(T,"ndel"));
+        
+        Read_block_tof(T,&buffer_tof,0);
+        r = rand() % (buffer_tof.nb + 1);
+        printf("\nr=%d nb=%d\n",r,buffer_tof.nb);
         for (i=r;i<r+10;i++){
-            printf("i=%d | key= %d block= %d position= %d\n\n",i,list_index[i].key,list_index[i].adr_block,list_index[i].position);
+                printf("%d %s, %s, %s, %d %d \n\n",buffer_tof.Tab[i].Document_id, buffer_tof.Tab[i].Title, buffer_tof.Tab[i].Author, buffer_tof.Tab[i].Domaine, buffer_tof.Tab[i].Pub_year, buffer_tof.Tab[0].Available_qty);
         }
-        printf("looking the list from i=%d\n",r);*/
-        printf("\n before the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
-        printf("nrec in the file= %d nrec in the index= %d\n",get_Header_lnof(F,"nrec"),get_Header_index(I,"num_ins"));
-        printf("looking in the last block in the file:\n");
 
-        Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-        r=max(buffer.nb-6,0);
-        
-        printf("last= %d\n",get_Header_lnof(F,"Lastblk"));
-
-        for (i=r;i<buffer.nb;i++){
-            printf("i= %d id= %d\n\n",i,buffer.Tab[i].Document_id);
-        }
-        printf("nb= %d,i=%d\n",buffer.nb,i);
-
-        //Add(F,I,list_index);
-        //load_index(I,list_index);
-        delete(F,I,list_index);
-        load_index(I,list_index);
-        
-        printf("\n after the adding\nnum_block in the file= %d num_block_index= %d\n",get_Header_lnof(F,"Lastblk"),get_Header_index(I,"num_block"));
-        printf("nrec in the file= %d nrec in the index= %d\n",get_Header_lnof(F,"nrec"),get_Header_index(I,"num_ins"));
-        printf("looking in the last block in the file:\n\n");
-
-        Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
-        Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
-        r=max(buffer.nb-6,0);
-        
-        printf("r= %d nb=%d nb_ind=%d\n",r,buffer.nb,buffer_index.nb);
-        for (i=r;i<buffer.nb;i++){
-            N = buffer.Tab[i].Document_id;
-            printf("i= %d id= %d pub_year=%d qty=%d\n",i,buffer.Tab[i].Document_id,buffer.Tab[i].Pub_year,buffer.Tab[i].Available_qty);
-            printf("key in index position %d is %d i=%d j=%d\n\n",i,buffer_index.Tab[i].key,buffer_index.Tab[i].adr_block,buffer_index.Tab[i].position);
-        }
-        printf("nb= %d,i=%d\n",buffer.nb,i);
-
-    
-        printf("\nenter the number of records:\n");
-        scanf("%d",&N);
-        do {
-            
-            Search_by_id(I,N,&found,&i,&j);
-            printf("\nsearch id\n");
-            if (found){
-                Read_Block_lnof(F,&buffer,i);
-                printf(" it was found in block %d position %d and value %d\n",i,j,buffer.Tab[j].Document_id);
-            } else{
-                printf("it was not found\n");
-            }
-
-            printf("\nsearching in the list + getheader_index=%d\n",get_Header_index(I,"num_ins"));
-            if (search_list(list_index,get_Header_index(I,"num_ins"),N,&j)){
-                            printf("%d was found in position %d wiht block= %d and position= %d\n",N,j,list_index[j].adr_block,list_index[j].position);
-                        } else {
-                            printf("%d was not found in the list\n",N);
-                        }
-            printf("\nenter the number of records:\n");
-            scanf("%d",&N);
-        } while(N != 0);
-        
-        close_index(I);    
+        close_index(I); 
+        close_tof(T);   
         close_lnof(F);
     }
 }
