@@ -222,6 +222,106 @@ void Alloc_block_index_1024 (fichier_tof_index *F){
     Write_Block_index(F,&buf,get_Header_index(F,"num_block"));
 }
 
+//* tof structure
+
+typedef struct type_enreg_tof {
+    long int Document_id;
+    char Title[71];
+    char Author[31];
+    char Domaine[82];
+    int Pub_year;
+    int Available_qty;
+    bool Del;
+} enreg_tof ;
+
+typedef struct type_block_tof {
+    enreg_tof Tab[b];
+    int nb;
+} block_tof;
+
+typedef struct type_hdr_tof {
+    int num_block;
+    int nrec;
+    int ndel;
+} header_tof ;
+
+typedef struct tof_file{
+    FILE *f;
+    header_tof h;
+} fichier_tof ;
+
+void open_tof(fichier_tof **F,char filename[], char mode){ //F->f will be pointing after the header
+    *F = (fichier_tof *)malloc(sizeof (fichier_tof));
+    if (mode == 'E' || mode == 'e'){ // create a nwe lof file
+        (*F)->f = fopen(filename,"rb+");
+        if ((*F)->f == NULL) {
+            printf("there was a problem opening the file");
+            exit( EXIT_FAILURE );
+        }
+        fread(&((*F)->h),sizeof(header_tof),1,(*F)->f);
+    }
+    else { //mode New 
+        (*F)->f = fopen(filename,"wb+");
+        if ((*F)->f == NULL) {
+            printf("there was a problem opening the file");
+            exit( EXIT_FAILURE );
+        }
+        //initialize the header
+        (*F)->h.num_block = 0;
+        (*F)->h.nrec = 0;
+        (*F)->h.ndel = 0;
+        fwrite(&((*F)->h),sizeof(header_tof),1,(*F)->f);
+        block_tof buffer;
+        buffer.nb =0;
+        fwrite(&buffer,sizeof(block_tof),1,(*F)->f);
+    }
+    printf("--LnOF file opened succesfuly\n\n");
+}
+
+void close_tof(fichier_tof *F){
+    rewind(F->f);
+    fwrite(&F->h, sizeof(header_tof),1,F->f);
+    fclose(F->f);
+    free(F);
+    printf("--LnOF file closed succesfuly\n");
+}
+
+int get_Header_tof(fichier_tof *F,char *field){
+    if (strcmp(field, "num_block") == 0) return F->h.num_block;
+    if (strcmp(field, "nrec") == 0) return F->h.nrec;
+    if (strcmp(field, "ndel") == 0) return F->h.ndel;
+    fprintf(stderr, "getHeader : Unknown headerName: \"%s\"\n", field);
+}
+
+void set_Header_tof(fichier_tof *F,char *field,int val){
+    if (strcmp(field, "num_block") == 0) {F->h.num_block = val ;return;}
+    if (strcmp(field, "nrec") == 0) {F->h.nrec = val ; return;}
+    if (strcmp(field, "ndel") == 0) {F->h.ndel = val ; return;}
+    fprintf(stderr, "setHeader : Unknown headerName: \"%s\"\n", field);
+}
+
+void Read_block_tof(fichier_tof *F,block_tof *buffer,int i){
+    if (i<0 || i>get_Header_tof(F,"Lastblk") ){fprintf(stderr, "Read_block_tof : number of block does not exist: \"%d\"\n", i);; return;}
+    fseek(F->f,sizeof(header_tof) + i*sizeof(block_tof),SEEK_SET);
+    fread(buffer,sizeof(block_tof),1,F->f);
+}
+
+void Write_block_tof(fichier_tof *F,block_tof *buffer,int i){
+    if (i<0 || i>get_Header_tof(F,"Lastblk") ){fprintf(stderr, "Write_block_tof : number of block does not exist: \"%d\"\n", i);; return;}
+    fseek(F->f,sizeof(header_tof) + i*sizeof(block_tof),SEEK_SET);
+    fwrite(buffer,sizeof(block_tof),1,F->f);
+    //fflush(F->f);
+}
+
+void Alloc_block_tof (fichier_tof *F){
+    block_tof buf;
+    Read_block_tof(F,&buf,get_Header_tof(F,"Lastblk"));
+    Write_block_tof(F,&buf,get_Header_tof(F,"Lastblk"));
+    buf.nb =0;
+    set_Header_tof(F,"Lastblk",get_Header_tof(F,"Lastblk")+1);
+    Write_block_tof(F,&buf,get_Header_tof(F,"Lastblk"));
+}
+
 bool find_list(int *list, int len,int N){
     int i=0 ;
     bool found=false;
