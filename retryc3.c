@@ -861,11 +861,25 @@ void load_index(fichier_tof_index *I,enreg_index *list){
    
     for (i=0;i<=num;i++){
         Read_Block_index(I,&buff,i);
-        printf("\nnum = %d nb= %d\n",i,buff.nb);
+        //printf("\nnum = %d nb= %d\n",i,buff.nb);
         for (j=0;j<buff.nb;j++){
             list[k] = buff.Tab[j];
             k++;
         }
+    }
+}
+
+void load_index_journal_du_tof(fichier_tof *T,enreg_index *list){
+    int i,k=0,j,num = get_Header_tof(T,"num_block");
+    block_tof buff;
+   
+    for (i=0;i<=num;i++){
+        Read_block_tof(T,&buff,i);
+        //printf("\nnum = %d nb= %d\n",i,buff.nb);
+            list[k].key = buff.Tab[buff.nb-1].Document_id;
+            list[k].adr_block = i;
+            list[k].position = buff.nb-1;
+            k++;
     }
 }
 
@@ -1319,11 +1333,13 @@ void delete(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index){ //? i
     } while (strcmp(choice,"yes") == 0);
 }
 
-void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T){
+void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index *I){ //I is the index file of journal_magazine
     block_lof buff_lof;
     block_tof buff_tof;
-    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0,len=1024;
+    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0,len=1024,i2;
     enreg_tof *list = (enreg_tof*)malloc(len * sizeof(enreg_tof));
+    enreg_index *list_index ;
+    block_index buffer_index;
 
     Read_Block_lnof(F,&buff_lof,link);
     for ( i = 0; i <= get_Header_lnof(F,"Lastblk"); i++){ //Read_Block_lnof(F,&buff_lof,i); //if it doesnt work
@@ -1344,7 +1360,8 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T){
      
     //*sorting the list
     sort_list_tof(list,num);
-
+    list_index = (enreg_index*)malloc((num / b) * sizeof(enreg_index));
+    i2=0;
     //* loading the file
     j=0;
     k=0;
@@ -1358,20 +1375,48 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T){
             k++;
             j++;     
         }else{
+            list_index[i2].key = buff_tof.Tab[k].Document_id;
+            list_index[i2].adr_block = get_Header_tof(T,"num_block");
+            list_index[i2].position = buff_tof.nb-1;
+            i2++;
             Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
             Alloc_block_tof(T);
             Read_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
             k=0;
             buff_tof.Tab[k].Document_id = list[j].Document_id ; buff_tof.Tab[k].Pub_year = list[j].Pub_year; buff_tof.Tab[k].Available_qty = list[j].Available_qty;
             strcpy(buff_tof.Tab[k].Title, list[j].Title); strcpy(buff_tof.Tab[k].Author, list[j].Author); strcpy(buff_tof.Tab[k].Domaine, list[j].Domaine);
-            buff_tof.nb++;
+            buff_tof.nb=1;
             k=1;
             j++;
         }
     }    
+    list_index[i2].key = buff_tof.Tab[k].Document_id;
+    list_index[i2].adr_block = get_Header_tof(T,"num_block");
+    list_index[i2].position = buff_tof.nb-1;
     Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));
     set_Header_tof(T,"nrec",num);
     
+    //* loading the index file from list_index
+    j=0;
+    buffer_index.nb =0;
+        for (i=0;i<i2+1;i++){
+            if (j<b){
+                buffer_index.Tab[j] = list_index[i];
+                buffer_index.nb++;
+                j++;
+            }else{
+                Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+                Alloc_block_index(I);
+                Read_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+                buffer_index.nb =1;
+                buffer_index.Tab[0] = list_index[i];
+                j=1;
+            }
+        }
+    Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));
+    set_Header_index(I,"num_ins",i2+1);
+    printf("index-journal terminated with success\n\n");
+
 }
 
 int main(){
@@ -1382,11 +1427,11 @@ int main(){
     buffer.link = -1;
     buffer.nb = 0;
     int i,j=0,N,r,*list,cpt = 1;
-    fichier_tof_index *I;
+    fichier_tof_index *I,*I2;
     fichier_tof *T;
-    enreg_index *list_index = (enreg_index*)malloc(sizeof(enreg_index));
+    enreg_index *list_index = (enreg_index*)malloc(sizeof(enreg_index)),*list_index_journal = (enreg_index*)malloc(sizeof(enreg_index));
     enreg e;
-    block_index buffer_index;
+    block_index buffer_index,buffer_index2;
     block_tof buffer_tof;
 
     //* writing the blocks
@@ -1397,26 +1442,41 @@ int main(){
         //* creating the index 
         open_index(&I,"index_test2",'e');
         open_tof(&T,"journal_magazine",'n');
+        open_index(&I2,"index_test2_journal",'n');
         //bulk_load_lof(F,I,5000);
 
         list_index = resize_list_index(list_index,get_Header_index(I,"num_ins")); 
-        if (list_index == NULL){
-            printf("ERROR: Memory allocation failed for list_index in main\n");
+        list_index_journal = resize_list_index(list_index_journal,get_Header_tof(T,"num_block")+1);
+
+        if (list_index == NULL || list_index_journal == NULL){
+            printf("ERROR: Memory allocation failed for list_indexes in main\n");
             return 0;
         }
+        
         load_index(I,list_index);
 
         printf("before: num_block in the file= %d nrec= %d ndel= %d\n\n",get_Header_tof(T,"num_block"),get_Header_tof(T,"nrec"),get_Header_tof(T,"ndel"));
-        bulk_laod_revue_periodique(F,T);
+        printf("before: num_block in the index file= %d nrec= %d ndel= %d\n\n",get_Header_index(I2,"num_block"),get_Header_index(I2,"num_ins"),get_Header_index(I2,"num_del"));
+        bulk_laod_revue_periodique(F,T,I2);
+        load_index_journal_du_tof(T,list_index_journal);
         printf("after: num_block in the file= %d nrec= %d ndel= %d\n\n",get_Header_tof(T,"num_block"),get_Header_tof(T,"nrec"),get_Header_tof(T,"ndel"));
-        
-        Read_block_tof(T,&buffer_tof,0);
+        printf("before: num_block in the index file= %d nrec= %d ndel= %d\n\n",get_Header_index(I2,"num_block"),get_Header_index(I2,"num_ins"),get_Header_index(I2,"num_del"));
+
+        Read_Block_index(I2,&buffer_index2,0);
+        printf("%d\n",buffer_index2.nb);
+        for (i=0;i<buffer_index2.nb;i++){
+            printf("i=%d key %d in block %d position %d\n",i,list_index_journal[i].key,list_index_journal[i].adr_block,list_index_journal[i].position);
+        }
+
+        /*
+        Read_Block_index(T,&buffer_tof,0);
         r = rand() % (buffer_tof.nb + 1);
         printf("\nr=%d nb=%d\n",r,buffer_tof.nb);
         for (i=r;i<r+10;i++){
                 printf("i=%d %d %s, %s, %s, %d %d \n\n",i,buffer_tof.Tab[i].Document_id, buffer_tof.Tab[i].Title, buffer_tof.Tab[i].Author, buffer_tof.Tab[i].Domaine, buffer_tof.Tab[i].Pub_year, buffer_tof.Tab[0].Available_qty);
-        }
-        printf("what id the id you are lookinh for ?\n");
+        }/*
+        
+        /*printf("what id the id you are lookinh for ?\n");
         scanf("%d",&N);
         Search_by_id_tof(T,N,&found,&j,&i);
         if (found ){
@@ -1424,7 +1484,9 @@ int main(){
             printf("%d %s, %s, %s, %d %d \n\n",buffer_tof.Tab[i].Document_id, buffer_tof.Tab[i].Title, buffer_tof.Tab[i].Author, buffer_tof.Tab[i].Domaine, buffer_tof.Tab[i].Pub_year, buffer_tof.Tab[0].Available_qty);
         } else {
             printf("id was not found in tof index\n");
-        }
+        }*/
+        
+        close_index(I2);
         close_index(I); 
         close_tof(T);   
         close_lnof(F);
