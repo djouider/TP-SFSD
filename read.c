@@ -94,7 +94,6 @@ void Back_read(POINT Start,char string[], int max)
 	POINT p;
 	Start.x++;
 	Start.y++;
-	delay(100);
 	for(i=0;i<max;i++)
 	{
 		temp[i]='\0';
@@ -421,6 +420,7 @@ int list(POINT Start,char *choices[])
 		}while(1);
 	}
 	unlist(Start);
+	curr--;
 	return curr;
 }
 

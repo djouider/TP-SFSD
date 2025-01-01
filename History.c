@@ -11,12 +11,12 @@ typedef struct _cost
 
 typedef struct h_enreg 
 {
-    char date[20];
-    char Operation[20];
+    char date[30];
+    char Operation[30];
     int number;
     cost cout;
-    char time[20];
-    char status[10];
+    char time[30];
+    char status[15];
 } henreg;
 
 typedef struct type_block_htof {
@@ -67,7 +67,6 @@ void close_htof(fichier_htof *F){
     rewind(F->f);
     fwrite(&F->h, sizeof(header_htof),1,F->f);
     fclose(F->f);
-    printf("\nfile closed succefly\n");
     free(F);
 }
 
@@ -116,9 +115,7 @@ void Add_history(fichier_htof *F,henreg val)
 {
 	int i;
 	block_htof buf;
-	printf("here");
 	i=get_Header_htof(F,"nblck");
-	printf("here");
 	if(!i)
 	{
 		Alloc_block_htof(F);
@@ -171,7 +168,6 @@ void Show_details(fichier_htof *F,int fs,int blck,int enreg)///Show full details
 		Read_Block_htof(F,&buf,blck);
 		val=buf.Tab[enreg];
 		system("cls");
-		printf("%d %d",blck,enreg);
 		if(fs)
 		{
 			if(strcmp(val.Operation,""))

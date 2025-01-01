@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
-#include "time.c"
+#include "final_menu.c"
 
 #define b 1024
 
@@ -11,8 +11,8 @@ typedef struct type_enreg {
     long int Document_id;
     char Title[71];
     char Author[31];
-    char Type[30];
-    char Domaine[82];
+    char Type[31];
+    char Domaine[83];
     int Pub_year;
     int Available_qty;
     bool Del;
@@ -232,7 +232,7 @@ int generate_random_id(int *list, int *len){
     int n;bool f;
     do {
     	cpt++;
-        n = 110000 +  rand()*1000 % (880001);
+        n = 110000 +  rand()*rand() % (880001);
         //n = 1 +  rand() % (30);
         f = find_list(list,*len,n);
         //printf("n=%d, f=%x\n",n,f);
@@ -268,16 +268,16 @@ char *generate_random_type(){
         "Actes de conferences","Rapports de recherche",
         "Memoires et theses","Polycopies et support de cours",""
     } ;
-    int num_type = 1 + rand() % (6);
+    int num_type = rand() % (6);
     return type[num_type];
 }
 
 char *generate_random_domaine(){
     char *domaine[13] = {
-        "","Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
+		"Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
         "Cybersecurite","Bases de donnees et gestion des donnees","Reseaux et telecommunications",
         "Genie logiciel, programmation et developpement logiciel","Informatique graphique, multimedia,vision par ordinateur et traitement d'images",
-        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique"
+        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique",""
     } ;
     int num_type = 1 + rand() % (12);
     return domaine[num_type];
@@ -390,8 +390,11 @@ void bulk_load_lof(fichier_lnof *F,int N,int *list1,int *len,char *time,bool *su
         if(*success)
         {
  	       Write_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk"));
+ 	       (cout->write)++;
 		}
 		sprintf(time,"%d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);// returning time tooken
+		set_Header_lnof(F,"Lastblk",cout->write+1);
+		set_Header_lnof(F,"nrec",N);
 }
 
 int check_file_existance(const char *fname)

@@ -235,6 +235,7 @@ int main()
 								else
 								{
 									printf("			Process stopped or occured a problem");
+//									close_lnof(&F);
 									remove("DOCUMENTS_LIBRARY.BIN");
 									printf("\n\nFile deleted");
 									
@@ -454,4 +455,5 @@ int main()
 	
 		}
 	}while(choice!=5);
+	close_lnof(F);
 }

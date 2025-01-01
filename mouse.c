@@ -1,14 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <conio.h>
-#include <time.h>
-#include <unistd.h>
-#include <windows.h>
-#include <winuser.h>
-
+#include "time.c"
 int last_x=0;
 int last_y=0;
 POINT p;
@@ -135,8 +125,8 @@ int left_click()
 	return 0;
 }
 
-/*
-int main()
+
+/*int main()
 {
 	int width, height;
 	POINT p;
@@ -145,8 +135,9 @@ int main()
     
 	do{
 	mouse_move(&p);
-//printf("x:%d y:%d",p.x,p.y);
-    if (GetKeyState(VK_LBUTTON) < 0) {
+	/*system("cls");
+printf("x:%d y:%d",p.x,p.y);*/
+    /*if (GetKeyState(VK_LBUTTON) < 0) {
 	printf("\033[%d;%dH", p.y, p.x);
 	printf("\033[47m%c",rand());
 	}

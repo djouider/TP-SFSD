@@ -1,4 +1,13 @@
-#include "final_menu.c"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <assert.h>
+#include <conio.h>
+#include <time.h>
+#include <unistd.h>
+#include <windows.h>
+#include <winuser.h>
 #include <sys/time.h>
 
 
@@ -54,6 +63,35 @@ void percentage(int i,int j, int max,int curr)
 	}
 	printf("\033[0m");
 }
+
+
+
+void progress()
+{
+	system("cls");
+	printf("\033[10;75HPress D to hide or show");
+    printf("\033[25;72H Press Esc to abort the process");
+}
+
+void update_progress(int max,int curr,char message[])
+{
+		Time elapsed, remaining;
+	    long temp,time;
+	    float perc;
+	
+    			perc=(float)curr/max*100;
+    			temp=Update_timer();
+    			convert_long_to_time(temp,&elapsed);
+    			time=temp*((((float)max-curr)/curr));
+   			 	convert_long_to_time(time,&remaining);
+   			 	printf("\033[15;84H\x1b[2K%.1f%%",perc);
+   			 	printf("\033[17;80H\x1b[2K%s",message);
+    			printf("\033[19;66H\x1b[2KTime elapsed: %d hours %d minutes %d seconds",elapsed.hours,elapsed.minutes,elapsed.seconds);
+    			printf("\033[21;65H\x1b[2KTime remaining: %d hours %d minutes %d seconds",remaining.hours,remaining.minutes,remaining.seconds);
+}
+
+
+
 
 /*int main(void) { 
 
