@@ -1,5 +1,5 @@
 #include "data_definition.h"
-#include "History.c"
+//#include "History.c"
 #ifndef base_modules
 
 bool find_list(int *list, int len,int N){
@@ -35,19 +35,19 @@ void generate_random_author(char author[31]){
 
 char *generate_random_type(){
     char *type[7] = {
-        "","Ouvrages et manuels","Revues et periodiques",
+        "Ouvrages et manuels","Revues et periodiques",
         "Actes de conferences","Rapports de recherche",
-        "Memoires et theses","Polycopies et support de cours"
+        "Memoires et theses","Polycopies et support de cours",""
     } ;
-    int num_type = 1 + rand() % (6);
+    int num_type = rand() % (6);
     return type[num_type];
 }
 
 void generate_type(char *typ){
     char *type[7] = {
-        "","Ouvrages et manuels","Revues et periodiques",
+        "Ouvrages et manuels","Revues et periodiques",
         "Actes de conferences","Rapports de recherche",
-        "Memoires et theses","Polycopies et support de cours"
+        "Memoires et theses","Polycopies et support de cours",""
     } ;
     int num_type;
     printf("1. Ouvrages et manuels\n2. Revues et periodiques\n3. Actes de conferences\n4. Rapports de recherche\n5. Memoires et theses\n6. Polycopies et support de cours\n");
@@ -57,15 +57,15 @@ void generate_type(char *typ){
         printf("oops number out of range please try again\n");
         scanf("%d",&num_type);
     }
-    strcpy(typ,type[num_type]);
+    strcpy(typ,type[num_type-1]);
 }
 
 void generate_domaine(char *typ){
     char *domaine[13] = {
-        "","Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
+        "Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
         "Cybersecurite","Bases de donnees et gestion des donnees","Reseaux et telecommunications",
         "Genie logiciel, programmation et developpement logiciel","Informatique graphique, multimedia,vision par ordinateur et traitement d'images",
-        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique"
+        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique",""
     } ;
     int num_type; 
     printf("1. Algorithmes et structures de donnees\n2. Intelligence artificielle et apprentissage automatique\n3. Systemes d'exploitation\n4. Cybersecurite\n5. Bases de donnees et gestion des donnees\n6. Reseaux et telecommunications\n7. Genie logiciel, programmation et developpement logiciel\n");
@@ -78,17 +78,17 @@ void generate_domaine(char *typ){
         scanf("%d",&num_type);
     }
     
-    strcpy(typ,domaine[num_type]);
+    strcpy(typ,domaine[num_type-1]);
 }
 
 char *generate_random_domaine(){
     char *domaine[13] = {
-        "","Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
+        "Algorithmes et structures de donnees","Intelligence artificielle et apprentissage automatique","Systemes d'exploitation",
         "Cybersecurite","Bases de donnees et gestion des donnees","Reseaux et telecommunications",
         "Genie logiciel, programmation et developpement logiciel","Informatique graphique, multimedia,vision par ordinateur et traitement d'images",
-        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique"
+        "Science des donnees et statistiques","Robotique et systemes embarques","Blockchain et technologies distribuees","Calcul haute performance et informatique quantique",""
     } ;
-    int num_type = 1 + rand() % (12);
+    int num_type =  rand() % (12);
     return domaine[num_type];
 }
 
@@ -109,6 +109,11 @@ void tocpy(){ //! it is just a place to put prints that are often used
             printf(" it was found in block %d position %d and value %d\n",i,j,buffer.Tab[j].Document_id);
         } else{
             printf("it was not found\n");
+
+            Read_Block_index(I2,&buffer_index,0);
+        for (i=0;i<get_Header_index(I2,"num_ins");i++){
+            printf("i=%d id=%d blk=%d pos=%d\n",i,buffer_index.Tab[i].key,buffer_index.Tab[i].adr_block,buffer_index.Tab[i].position);
+        }
         }*/
 }
 
@@ -546,5 +551,16 @@ void Read_record(enreg *e,enreg_index *list_index,int len) {
     }   
 }
 
+void affich_entet_lnof(fichier_lnof *F){
+    printf("\nfichier principale\n------------------\nnumber of blocks in the file: %d\nnumber of documents: %d\nnumber of deletes: %d\n\n",get_Header_lnof(F,"Lastblk")+1,get_Header_lnof(F,"nrec"),get_Header_lnof(F,"ndel"));
+}
+
+void affich_entet_index(fichier_tof_index *I){
+    printf("\nfichier index\n--------------\nnumber of blocks in the file: %d\nnumber of documents: %d\nnumber of deletes: %d\n\n",get_Header_index(I,"num_block")+1,get_Header_index(I,"num_ins"),get_Header_index(I,"num_del"));
+}
+
+void affich_entet_tof(fichier_tof *T){
+    printf("\nfichier journal_magazine\n------------------\nnumber of blocks in the file: %d\nnumber of documents: %d\nnumber of deletes: %d\nupdated: %x\n\n",get_Header_tof(T,"num_block")+1,get_Header_tof(T,"nrec"),get_Header_tof(T,"ndel"),get_Header_tof(T,"updated"));
+}
 
 #endif

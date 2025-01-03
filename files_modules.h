@@ -1,4 +1,4 @@
-#include "modules.h"
+#include "base_modules.h"
 #ifndef files_modules
 
 void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N,cost *cout){
@@ -80,39 +80,7 @@ void bulk_load_lof(fichier_lnof *F,fichier_tof_index *I,int N,cost *cout){
     }
 }
 
-void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *position,cost *cout){
-    *found = false;
-    (*cout).read=0;
-    (*cout).write = 0;
-    if (key < 110000 || key > 990000){
-        printf("\n\nkey out of range\n\n");
-
-    } else {
-        int m,inf_b = 0,sup_b = get_Header_index(I,"num_block");
-        block_index buff;
-        bool stop=false;
-
-        while(!stop && (inf_b <= sup_b)){
-            m = (inf_b + sup_b)/2;
-
-            Read_Block_index(I,&buff,m);(*cout).read++;
-            //printf("nb in block index= %d is %d 1=%d and l=%d\n",m,buff.nb,buff.Tab[0].key,buff.Tab[buff.nb - 1].key);
-            if (key >= buff.Tab[0].key && key <= buff.Tab[buff.nb - 1].key){
-                Recherche_dicho_bufer(buff,key,found,block,position);
-                //printf(" bloc in index_file=%d\n",m);
-                stop = true;
-            } else {
-                if (key < buff.Tab[1].key){
-                    sup_b = m-1;
-                } else {
-                    inf_b = m +1 ;
-                }
-            }
-        }
-    }
-}
-
-void modify_document(fichier_lnof *F,fichier_tof_index *I,cost *cout){
+void modify_document(fichier_lnof *F,fichier_tof_index *I,cost *cout,enreg_index *list_index){
     block_index buffer_index;
     block_lof buffer;
     enreg e;
@@ -124,23 +92,25 @@ void modify_document(fichier_lnof *F,fichier_tof_index *I,cost *cout){
     printf("\ngive the id of the record you want to modify\n");
     scanf("%d",&key);
 
-    Search_by_id(I,key,&found,&block,&position,cout);  //!
-    if (found){
+    //Search_by_id(I,key,&found,&block,&position,cout); 
+    if (search_list(list_index,get_Header_index(I,"num_ins"),key,&position)){
         //the prints are just to see the changes
-        Read_Block_lnof(F,&buffer,block);(*cout).read++;
-        printf("the %d is in block %d position %d\n",buffer.Tab[position].Document_id,block,position);
-        e = buffer.Tab[position];
-        printf("before | %d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[position].Document_id, buffer.Tab[position].Title, buffer.Tab[position].Author, buffer.Tab[position].Type, buffer.Tab[position].Domaine, buffer.Tab[position].Pub_year, buffer.Tab[position].Available_qty);
+        printf("the %d is in block %d position %d\n",list_index[position].key,list_index[position].adr_block,list_index[position].position);
+        Read_Block_lnof(F,&buffer,list_index[position].adr_block);(*cout).read++;
+        printf("the %d is in block %d position %d\n",buffer.Tab[list_index[position].position].Document_id);
+        e = buffer.Tab[list_index[position].position];
+        printf("before | %d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[list_index[position].position].Document_id, buffer.Tab[list_index[position].position].Title, buffer.Tab[list_index[position].position].Author, buffer.Tab[list_index[position].position].Type, buffer.Tab[list_index[position].position].Domaine, buffer.Tab[list_index[position].position].Pub_year, buffer.Tab[list_index[position].position].Available_qty);
         read_changes(&e);
-        buffer.Tab[position] = e;
-        printf("after | %d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[position].Document_id, buffer.Tab[position].Title, buffer.Tab[position].Author, buffer.Tab[position].Type, buffer.Tab[position].Domaine, buffer.Tab[position].Pub_year, buffer.Tab[position].Available_qty);
-        Write_Block_lnof(F,&buffer,block);(*cout).write++;
+        buffer.Tab[list_index[position].position] = e;
+        printf("after | %d %s, %s, %s, %s, %d %d \n\n",buffer.Tab[list_index[position].position].Document_id, buffer.Tab[list_index[position].position].Title, buffer.Tab[list_index[position].position].Author, buffer.Tab[list_index[position].position].Type, buffer.Tab[list_index[position].position].Domaine, buffer.Tab[list_index[position].position].Pub_year, buffer.Tab[list_index[position].position].Available_qty);
+        Write_Block_lnof(F,&buffer,list_index[position].adr_block);(*cout).write++;
     } else{
         printf("\nThe record was not found\n");
     }
 } 
 
-void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,cost *cout) {
+void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,cost *cout) { 
+    //if problems occurs in the list index in main it may be from resizing the index_list
     int num,choice,i,cpt=0,nrec=get_Header_lnof(F,"nrec"),adr = get_Header_lnof(F,"Lastblk"),min=990001,index,j,cnd,q,r;
     char respond[15];
     enreg document;
@@ -165,10 +135,10 @@ void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,c
                 choice = 2;
             }
 
-            //printf("before list_index\n");
             list_index = resize_list_index(list_index,nrec+num);
+            //list_index = (enreg_index *)realloc(list_index,(nrec+num) * sizeof(enreg_index));
+            
             Read_Block_lnof(F,&buffer,get_Header_lnof(F,"Lastblk")); (*cout).read++;
-
             switch (choice){
                 case 1: //manually
                     //* filling the lnof file
@@ -201,7 +171,7 @@ void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,c
 
                     //* sorting the list
                     sort_list(list_index,nrec);
-            
+
                     //* filling the index file 
                     if (! search_list(list_index,nrec,min,&index)){
                         printf("%d was not found in the list\n",min); //* to check if the search didnt have problems
@@ -284,7 +254,7 @@ void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,c
 
                     //* sorting the list
                     sort_list(list_index,nrec);
-            
+
                     //* if the search had a problem
                     if (! search_list(list_index,nrec,min,&index)){
                         printf("%d was not found in the list\n",min); //* to check if the search didnt have problems
@@ -340,7 +310,7 @@ void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,c
     }
 }
 
-void delete_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,cost *cout){ //? in this i am not using ndel in the meantime (propably i will take rid of it) 
+void delete_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,cost *cout){ 
     int id,i,j,pos,nrec = get_Header_index(I,"num_ins"),adr,cnd;            //? it maybe needs some optimisation
     bool same,last;
     char choice[20];
@@ -402,9 +372,6 @@ void delete_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_inde
                 id=j;
                 //?printf("after j=%d id=%d adr=%d pos=%d\n",j,list_index[j].key,list_index[j].adr_block,list_index[j].position);
             }
-        
-            set_Header_index(I,"num_ins",nrec-1);
-            set_Header_lnof(F,"nrec",nrec-1);
 
             //update the index file
             adr = pos / b; 
@@ -433,6 +400,9 @@ void delete_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_inde
                             }
                         }
                         Write_Block_index(I,&buffer_index,adr);(*cout).write++;
+            nrec = get_Header_index(I,"num_ins")-1;
+            set_Header_index(I,"num_ins",nrec);
+            set_Header_lnof(F,"nrec",nrec);
         } else {
             printf("the id was not found in the list_index\n");
         }
@@ -442,12 +412,11 @@ void delete_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_inde
     } while (strcmp(choice,"yes") == 0);
 }
 
-void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index *I,cost *cout){ //I is the index file of journal_magazine
+void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index *I,enreg_index *list_index,cost *cout){ //I is the index file of journal_magazine and list_indedx is the index of journal_magazine 
     block_lof buff_lof;
     block_tof buff_tof;
-    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0,len=1024,i2;
+    int i,j,k=0,link = get_Header_lnof(F,"Firstblk"),num=0,len=1024,i2; //num is the true length of list
     enreg_tof *list = (enreg_tof*)malloc(len * sizeof(enreg_tof));
-    enreg_index *list_index ;
     block_index buffer_index;
     (*cout).write = 0;
     (*cout).read=0;
@@ -458,7 +427,7 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index
         for (j=0; j<buff_lof.nb; j++){
             if (strcmp(buff_lof.Tab[j].Type,"Revues et periodiques") == 0) {
                 if (k >= len){
-                    len++;
+                    len = len + 1024;
                     list = resize_list_tof(list,len);
                 }
                 list[k].Document_id = buff_lof.Tab[j].Document_id ; list[k].Pub_year = buff_lof.Tab[j].Pub_year; list[k].Available_qty = buff_lof.Tab[j].Available_qty;
@@ -468,11 +437,12 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index
             }
         }
     }
-     
+
     //*sorting the list
     sort_list_tof(list,num);
-    list_index = (enreg_index*)malloc((num / b) * sizeof(enreg_index));
+    list_index = (enreg_index*)malloc((num / b) * sizeof(enreg_index)); // the length of list index will be always getHeader(T,"num_ins") / b
     i2=0;
+
     //* loading the file
     j=0;
     k=0;
@@ -486,7 +456,7 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index
             k++;
             j++;     
         }else{
-            list_index[i2].key = buff_tof.Tab[k].Document_id;
+            list_index[i2].key = buff_tof.Tab[k-1].Document_id;
             list_index[i2].adr_block = get_Header_tof(T,"num_block");
             list_index[i2].position = buff_tof.nb-1;
             i2++;
@@ -501,7 +471,7 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index
             j++;
         }
     }    
-    list_index[i2].key = buff_tof.Tab[k].Document_id;
+    list_index[i2].key = buff_tof.Tab[k-1].Document_id;
     list_index[i2].adr_block = get_Header_tof(T,"num_block");
     list_index[i2].position = buff_tof.nb-1;
     Write_block_tof(T,&buff_tof,get_Header_tof(T,"num_block"));(*cout).write++;
@@ -526,8 +496,22 @@ void bulk_laod_revue_periodique(fichier_lnof *F,fichier_tof *T,fichier_tof_index
         }
     Write_Block_index(I,&buffer_index,get_Header_index(I,"num_block"));(*cout).write++;
     set_Header_index(I,"num_ins",i2+1);
+    set_Header_tof(T,"updated",1);
     printf("index-journal terminated with success\n\n");
+    set_Header_tof(T,"updated",1);
 
+}
+
+void update_journal(fichier_lnof *F,fichier_tof **T,fichier_tof_index *I,enreg_index *list_index,cost *cout){
+    //! we need to remove the prints
+    char filename[50];
+
+    strcpy(filename,(*T)->h.filename);
+    close_tof((*T));
+    remove((*T)->h.filename);
+    open_tof(T,filename,'n');
+    bulk_laod_revue_periodique(F,(*T),I,list_index,cout);
+    set_Header_tof((*T),"updated",1);
 }
 
 void Search_by_id_tof (fichier_tof *T,int key,bool *found,int *block,int *position,cost *cout){
@@ -563,4 +547,35 @@ void Search_by_id_tof (fichier_tof *T,int key,bool *found,int *block,int *positi
     }
 }
 
+void Search_by_id (fichier_tof_index *I,int key,bool *found,int *block,int *position,cost *cout){
+    *found = false;
+    (*cout).read=0;
+    (*cout).write = 0;
+    if (key < 110000 || key > 990000){
+        printf("\n\nkey out of range\n\n");
+
+    } else {
+        int m,inf_b = 0,sup_b = get_Header_index(I,"num_block");
+        block_index buff;
+        bool stop=false;
+
+        while(!stop && (inf_b <= sup_b)){
+            m = (inf_b + sup_b)/2;
+
+            Read_Block_index(I,&buff,m);(*cout).read++;
+            //printf("nb in block index= %d is %d 1=%d and l=%d\n",m,buff.nb,buff.Tab[0].key,buff.Tab[buff.nb - 1].key);
+            if (key >= buff.Tab[0].key && key <= buff.Tab[buff.nb - 1].key){
+                Recherche_dicho_bufer(buff,key,found,block,position);
+                //printf(" bloc in index_file=%d\n",m);
+                stop = true;
+            } else {
+                if (key < buff.Tab[1].key){
+                    sup_b = m-1;
+                } else {
+                    inf_b = m +1 ;
+                }
+            }
+        }
+    }
+}
 #endif

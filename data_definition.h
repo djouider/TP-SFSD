@@ -7,11 +7,17 @@
 
 #define b 1024
 
+typedef struct _cost
+{
+	int read;
+	int write;
+} cost;
+
 typedef struct type_enreg {
     long int Document_id;
     char Title[71];
     char Author[31];
-    char Type[30];
+    char Type[31];
     char Domaine[82];
     int Pub_year;
     int Available_qty;
@@ -68,6 +74,7 @@ void open_lnof(fichier_lnof **F,char filename[], char mode){ //F->f will be poin
 
 void close_lnof(fichier_lnof *F){
     rewind(F->f);
+    //fseek(F->f,0,SEEK_SET);
     fwrite(&F->h, sizeof(header_lof),1,F->f);
     fclose(F->f);
     free(F);
@@ -79,7 +86,7 @@ int get_Header_lnof(fichier_lnof *F,char *field){
     if (strcmp(field, "Lastblk") == 0) return F->h.Lastblk;
     if (strcmp(field, "nrec") == 0) return F->h.nrec;
     if (strcmp(field, "ndel") == 0) return F->h.ndel;
-    fprintf(stderr, "getHeader : Unknown headerName: \"%s\"\n", field);
+    fprintf(stderr, "getHeader_lnof : Unknown headerName: \"%s\"\n", field);
 }
 
 void set_Header_lnof(fichier_lnof *F,char *field,int val){
@@ -87,7 +94,7 @@ void set_Header_lnof(fichier_lnof *F,char *field,int val){
     if (strcmp(field, "Lastblk") == 0) {F->h.Lastblk = val ; return;}
     if (strcmp(field, "nrec") == 0) {F->h.nrec = val ; return;}
     if (strcmp(field, "ndel") == 0) {F->h.ndel = val ; return;}
-    fprintf(stderr, "setHeader : Unknown headerName: \"%s\"\n", field);
+    fprintf(stderr, "setHeader_lnof : Unknown headerName: \"%s\"\n", field);
 }
 
 void Read_Block_lnof(fichier_lnof *F,block_lof *buffer,int i){
@@ -237,6 +244,8 @@ typedef struct type_hdr_tof {
     int num_block;
     int nrec;
     int ndel;
+    char filename[50];
+    bool updated;
 } header_tof ;
 
 typedef struct tof_file{
@@ -264,12 +273,14 @@ void open_tof(fichier_tof **F,char filename[], char mode){ //F->f will be pointi
         (*F)->h.num_block = 0;
         (*F)->h.nrec = 0;
         (*F)->h.ndel = 0;
+        (*F)->h.updated = 0;
+        strcpy((*F)->h.filename,filename);
         fwrite(&((*F)->h),sizeof(header_tof),1,(*F)->f);
         block_tof buffer;
         buffer.nb =0;
         fwrite(&buffer,sizeof(block_tof),1,(*F)->f);
     }
-    printf("--tOF file opened succesfuly\n\n");
+    printf("--TOF file opened succesfuly\n\n");
 }
 
 void close_tof(fichier_tof *F){
@@ -277,21 +288,23 @@ void close_tof(fichier_tof *F){
     fwrite(&F->h, sizeof(header_tof),1,F->f);
     fclose(F->f);
     free(F);
-    printf("--tOF file closed succesfuly\n");
+    printf("--TOF file closed succesfuly\n");
 }
 
 int get_Header_tof(fichier_tof *F,char *field){
     if (strcmp(field, "num_block") == 0) return F->h.num_block;
     if (strcmp(field, "nrec") == 0) return F->h.nrec;
     if (strcmp(field, "ndel") == 0) return F->h.ndel;
-    fprintf(stderr, "getHeader : Unknown headerName: \"%s\"\n", field);
+    if (strcmp(field, "updated") == 0) return F->h.updated;
+    fprintf(stderr, "getHeader_tof : Unknown headerName: \"%s\"\n", field);
 }
 
 void set_Header_tof(fichier_tof *F,char *field,int val){
     if (strcmp(field, "num_block") == 0) {F->h.num_block = val ;return;}
     if (strcmp(field, "nrec") == 0) {F->h.nrec = val ; return;}
     if (strcmp(field, "ndel") == 0) {F->h.ndel = val ; return;}
-    fprintf(stderr, "setHeader : Unknown headerName: \"%s\"\n", field);
+    if (strcmp(field, "updated") == 0) {F->h.updated = (bool)val ; return;}
+    fprintf(stderr, "setHeader_tof : Unknown headerName: \"%s\"\n", field);
 }
 
 void Read_block_tof(fichier_tof *F,block_tof *buffer,int i){
