@@ -211,16 +211,15 @@ void Recherche_dicho_bufer(block_index buff,int key,bool *found,int *block,int *
     }
 }
 
-void Recherche_dicho_bufer_tof(block_tof buff,int key,bool *found,int *position){
-    int m,inf = 0,sup = buff.nb-1; //! sup 
-    *found = false;
+bool Recherche_dicho_bufer_tof(block_tof buff,int key,int *position){ // returns the last visited index in the buffer
+    int m,inf = 0,sup = buff.nb-1; //! sup et inf
+    bool found = false;
 
-    while(!(*found )&& (inf <= sup)){
+    while(!found && (inf <= sup)){
         m = (inf + sup) / 2;
         if ( buff.Tab[m].Document_id == key ){
-            *found = true;
+            found = true;
             //printf("key = %d  %d position in = %d",key,*position,m);
-            *position = m;
         } else {
             if (buff.Tab[m].Document_id > key){
                 sup = m - 1 ;
@@ -229,6 +228,8 @@ void Recherche_dicho_bufer_tof(block_tof buff,int key,bool *found,int *position)
             }
         }
     }
+    *position = m;
+    return found;
 }
 
 void Recherche_dicho_list(enreg_index *list_index,int len,int key,bool *found,int *block,int *position){
@@ -249,9 +250,9 @@ void Recherche_dicho_list(enreg_index *list_index,int len,int key,bool *found,in
             }
         }
     }
-}
+};
 
-bool search_list(enreg_index *list_index,int len,int key,int *position){
+bool search_list(enreg_index *list_index,int len,int key,int *position){  //it returns also the last visited inedx in the list
     int m,inf = 1,sup =len;
     bool found=false;
 
@@ -261,7 +262,6 @@ bool search_list(enreg_index *list_index,int len,int key,int *position){
         if ( list_index[m].key == key ){
             //printf("%d was found\n",key);
             found = true;
-            *position = m;
         } else {
             if (list_index[m].key > key){
                 sup = m - 1 ;
@@ -270,7 +270,26 @@ bool search_list(enreg_index *list_index,int len,int key,int *position){
             }
         }
     }
+    *position = m;
     return found;
+}
+
+bool search_list_journal(fichier_tof *T,enreg_index *list_index,int key,int *block,int *position){ //search in the list_index fo journal_magazine file and returning its coordinats in the file
+
+    if (search_list(list_index, (get_Header_tof(T,"nrec") / b)+1,key,position)){  // this will check first if the key in the list_index //position is the position of the key in list index
+        *block = list_index[*position].adr_block;
+        *position = list_index[*position].position; //now it returns the position in the tof file
+        return true;
+    } //else 
+    block_tof buffer;
+    *block = list_index[*position].adr_block;
+    Read_block_tof(T,&buffer,list_index[*position].adr_block);
+    printf("position %d\n-------\n",*position);
+    if ( Recherche_dicho_bufer_tof(buffer,key,position) ){ //now this looks the position in the buffer
+        return true;
+    } //if not found in the buffer
+    return false;
+    
 }
 
 void read_changes(enreg *e){

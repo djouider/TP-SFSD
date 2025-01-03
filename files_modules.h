@@ -126,7 +126,7 @@ void Add_document(fichier_lnof *F,fichier_tof_index *I,enreg_index *list_index,c
         printf("how do you want to generate them ?\n1. manually\n2. automaticlly\n");
             scanf("%d",&choice);
 
-            while (choice == 1 && num > 5) {
+            if (choice == 1 && num > 5) {
                 printf("the number to insert is a little bit long do you want to enter the document manually (yes or no)?\n");
                 scanf("%s",respond);
             }
@@ -532,7 +532,7 @@ void Search_by_id_tof (fichier_tof *T,int key,bool *found,int *block,int *positi
             Read_block_tof(T,&buff,m);(*cout).read++;
             //printf("nb in block = %d is %d 1=%d and l=%d\n",m,buff.nb,buff.Tab[0].Document_id,buff.Tab[buff.nb - 1].Document_id);
             if (key >= buff.Tab[0].Document_id && key <= buff.Tab[buff.nb - 1].Document_id){
-                Recherche_dicho_bufer_tof(buff,key,found,position);
+                Recherche_dicho_bufer_tof(buff,key,position);
                 //printf(" bloc in tof_file=%d\n",m);
                 *block = m;
                 stop = true;

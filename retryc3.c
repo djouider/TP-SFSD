@@ -28,10 +28,12 @@ int main(){
         open_index(&I2,"index_test2_journal",'n');
 
         load_index(I,list_index);
-        //bulk_laod_revue_periodique(F,T,I2,list_index_journal,&cout);
+        bulk_laod_revue_periodique(F,T,I2,list_index_journal,&cout);
         load_index(I2,list_index_journal);
+        affich_entet_tof(T);
 
-        Read_block_tof(T,&buffer_tof,0);
+        
+        Read_block_tof(T,&buffer_tof,1);
         for (i=0;i<10;i++){
             r = rand() % (buffer_tof.nb);
             printf("i=%d | %d %s, %s, %s, %d %d \n\n",r,buffer_tof.Tab[r].Document_id, buffer_tof.Tab[r].Title, buffer_tof.Tab[r].Author, buffer.Tab[r].Domaine, buffer_tof.Tab[r].Pub_year, buffer_tof.Tab[r].Available_qty);
@@ -47,8 +49,21 @@ int main(){
         for (i=0;i<get_Header_index(I2,"num_ins");i++){
             printf("i=%d id=%d blk=%d pos=%d\n",i,list_index_journal[i].key,list_index_journal[i].adr_block,list_index_journal[i].position);
         }
-        list_index = resize_list_index(list_index,get_Header_index(I,"num_ins")); 
-        list_index_journal = resize_list_index(list_index_journal,(get_Header_tof(T,"num_block")/b)+1);
+        r=0;
+        do {
+            printf("\ngive the id you are looking for\n");
+            scanf("%d",&N);
+            search_list(list_index_journal,get_Header_index(I2,"num_ins"),N,&r);
+            printf("position in the first %d\n",r);
+            if (search_list_journal(T,list_index_journal,N,&i,&j)){
+                printf("the key %d can be found in block= %d pos %d \n",N,i,j);
+            } else {
+                printf("the key %d was not found \n",N);
+            }
+            affich_entet_tof(T);
+        }while ( N != 0);
+        //list_index = resize_list_index(list_index,get_Header_index(I,"num_ins")); 
+        //list_index_journal = resize_list_index(list_index_journal,(get_Header_tof(T,"num_block")/b)+1);
         if (list_index == NULL || list_index_journal == NULL){
             printf("ERROR: Memory allocation failed for list_indexes in main\n");
             return 0;
